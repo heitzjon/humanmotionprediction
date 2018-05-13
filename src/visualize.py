@@ -13,7 +13,7 @@ import numpy as np
 from utils import forward_kinematics, Skeleton
 
 
-def visualize_positions(positions, change_color_after_frame=None):
+def visualize_positions(positions, change_color_after_frame=None, action_label='not provided'):
     """
     Visualize motion given 3D positions. Can visualize several motions side by side. If the sequence lengths don't
     match, all animations are displayed until the shortest sequence length.
@@ -99,7 +99,8 @@ def visualize_positions(positions, change_color_after_frame=None):
 
                 k += 1
         time_passed = '{:>.2f} seconds passed'.format(1./25.*num)
-        fig_text.set_text(time_passed)
+        action_label_text = 'Action Label: {0}'.format(action_label)
+        fig_text.set_text(';  '.join([time_passed, action_label_text]))
 
     # create the animation object, for animation to work reference to this object must be kept
     line_ani = animation.FuncAnimation(fig, update_frame, seq_length,
@@ -121,10 +122,16 @@ def visualize_joint_angles(joint_angles, change_color_after_frame=None):
 
 
 if __name__ == '__main__':
-    # load a random training sequence
-    # TODO change data path here
+    # the train_data file contains 162 sequences of human motion, all classified with an
+    # action label (train_data[i]['action_label']).
+    # We randomly select one and visualize it. Important: the amount of frames per sequence is different,
+    # usually somewhere between 700 and 2000.
+    # Every frame in the sequence then has a vector with 75 dimensions (25 joints a 3 dimensions)
     train_data = np.load('../data/train.npz')['data']
-    data = train_data[np.random.randint(len(train_data))]['angles']
+    random_sequence_index = np.random.randint(len(train_data))
+
+    data = train_data[random_sequence_index]['angles']
+    action_label = train_data[random_sequence_index]['action_label']
 
     positions = forward_kinematics(data)
-    visualize_positions([positions])
+    visualize_positions([positions], None, action_label)
