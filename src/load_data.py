@@ -260,12 +260,12 @@ class MotionDataset(Dataset, Feeder):
         if split == 'test':  # there's no targets in the test data
             target = None
         else:
-            # The goal of the target is to have an array with the same dimensions as the original frame-array, but
+            # The purpose of the target is to have an array with the same dimensions as the original frame-array, but
             # with the "goal" (or target) frame at each position. We copy the original array with
             # the cursor moved by one (see x[1:]), which is then the target frame for each frame except the last one.
             # As we don't really know whats the target frame for the last one, we just say
             # "it stays the same" --> use the last frame again with x[-1:]
-            # important: this is done for every of the 162 sequences of the training data
+            # This is done for every of the 162 sequences of the training data
             target = [np.concatenate([np.copy(x[1:]), np.copy(x[-1:])], axis=0) for x in all_angles]
 
         # Here we create the object with all data --> right now we are in a static/class-method
