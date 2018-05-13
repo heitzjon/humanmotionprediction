@@ -245,6 +245,8 @@ class MotionDataset(Dataset, Feeder):
             angles = d['angles']
             angles_s = _split(angles)
             all_angles.extend(angles_s)
+            # the next lines are only necessary in case of a split (which we currently don't use).
+            # In that case, you would have multiple entries with the same value in all_ids/all_actions (one per split)
             all_ids.extend([d['id']]*len(angles_s))
             all_action_labels.extend([d['action_label']]*len(angles_s))
 
@@ -258,8 +260,15 @@ class MotionDataset(Dataset, Feeder):
         if split == 'test':  # there's no targets in the test data
             target = None
         else:
+            # The goal of the target is to have an array with the same dimensions as the original frame-array, but
+            # with the "goal" (or target) frame at each position. We copy the original array with
+            # the cursor moved by one (see x[1:]), which is then the target frame for each frame except the last one.
+            # As we don't really know whats the target frame for the last one, we just say
+            # "it stays the same" --> use the last frame again with x[-1:]
+            # important: this is done for every of the 162 sequences of the training data
             target = [np.concatenate([np.copy(x[1:]), np.copy(x[-1:])], axis=0) for x in all_angles]
 
+        # Here we create the object with all data --> right now we are in a static/class-method
         obj = cls(input_, target, all_ids, all_action_labels, batch_size, rng)
         return obj
 
