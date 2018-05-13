@@ -169,3 +169,15 @@ def export_to_csv(data, ids, output_file):
         output_file.append('.csv')
 
     data_frame.to_csv(output_file, float_format='%.8f')
+
+
+def verify_tensorflow_with_gpu():
+    import tensorflow as tf
+
+    if __name__ == "__main__":
+        tf.Session(config=tf.ConfigProto(log_device_placement=True))
+
+        if tf.test.gpu_device_name():
+            print('Default GPU Device: {}'.format(tf.test.gpu_device_name()))
+        else:
+            print("Please install GPU version of TF")
