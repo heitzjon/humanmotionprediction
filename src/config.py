@@ -2,8 +2,8 @@
 train_config = {}
 train_config['data_dir'] = '../data'  # TODO where the data downloaded from Kaggle is stored, i.e. the *.npz files
 train_config['output_dir'] = '../trained_models/'  # TODO where you want to store the checkpoints of different training runs
-train_config['name'] = 'dummy_model'  # TODO give your model a name if you want
-train_config['batch_size'] = 0  # TODO specify a batch size (this is currently just a dummy value)
+train_config['name'] = 'dummy_model'
+train_config['batch_size'] = 3  # can not be zero!
 train_config['max_seq_length'] = -1  # TODO specify for how many time steps you want to unroll the RNN (this is currently just a dummy value)
 
 train_config['learning_rate'] = 1.0  # TODO specify a learning rate (this is currently just a dummy value)
