@@ -84,7 +84,7 @@ def main(config):
         else:
             raise ValueError('learning rate type "{}" unknown.'.format(config['learning_rate_type']))
 
-        # TODO choose the optimizer you desire here and define `train_op. The loss should be accessible through rnn_model.loss
+        # choose the optimizer you desire here and define `train_op. The loss should be accessible through rnn_model.loss
         optimizer = tf.train.GradientDescentOptimizer(lr)
 
         params = tf.trainable_variables()

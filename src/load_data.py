@@ -101,7 +101,13 @@ class Feeder(AbstractFeeder):
         self._rng = rng
 
         # how many batches we have to run? example 5873 / 2 = 2937
-        self._n_batches = int(np.ceil(float(len(self._dataset.input_)) / float(batch_size)))
+        # TODO:
+        # find out how the last batch works... with this original code, we have 293.65 batches (so the last batch has
+        # a batch-size of only 13 instead of 20). This causes an error in training.
+        # That's why we currently just forget the last batch...
+
+        # self._n_batches = int(np.ceil(float(len(self._dataset.input_)) / float(batch_size)))
+        self._n_batches = int(np.floor(float(len(self._dataset.input_)) / float(batch_size)))
 
         # pointers to the next available batch
         self._batch_ptr = 0
