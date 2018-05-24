@@ -144,10 +144,6 @@ def main(config):
             # reshuffle the batches
             data_train.reshuffle()
 
-            # at every new epoch we need to reset the state of the RNN.
-            # TODO: is there a better way?
-            current_state = np.zeros((config['num_of_layers'], 2, config['batch_size'], config['hidden_units']))
-
             # loop through all training batches
             for i, batch in enumerate(data_train.all_batches()):
                 step = tf.train.global_step(sess, global_step)
@@ -159,20 +155,13 @@ def main(config):
                 # we want to train, so must request at least the train_op
                 fetches = {'summaries': summaries_training,
                            'loss': rnn_model.loss,
-                           'train_op': train_op,
-                           'state': rnn_model.final_state}  # get the last state from the RNN so we can add it in the next batch
+                           'train_op': train_op}
 
                 # get the feed dict for the current batch
                 feed_dict = rnn_model.get_feed_dict(batch)
 
-                # add the state to the feed dict (TODO: is there a better way?)
-                feed_dict[rnn_model.initial_state] = current_state
-
                 # feed data into the model and run optimization
-                training_out = sess.run(fetches, feed_dict)
-
-                # TODO: is there a better way?
-                current_state = fetches['state']
+                training_out, _ = sess.run([fetches, rnn_model.update_internal_rnn_state], feed_dict)
 
                 # write logs
                 train_summary_writer.add_summary(training_out['summaries'], global_step=step)

@@ -64,33 +64,34 @@ class RNNModel(object):
 
         with tf.variable_scope('rnn_model', reuse=self.reuse):
 
-            # it's a bit stupid, but we can't use the self.batch_size here as it's not yet initialized in the tensor.
-            # this might be a solution: https://stackoverflow.com/questions/41630022/using-placeholder-as-shape-in-tensorflow
-            self.initial_state = tf.placeholder(tf.float32, [self.num_layers, 2, self.config['batch_size'], self.hidden_units])
-
-            state_per_layer_list = tf.unstack(self.initial_state, axis=0)
-
-            rnn_tuple_state = tuple(
-                [tf.contrib.rnn.LSTMStateTuple(state_per_layer_list[idx][0], state_per_layer_list[idx][1])
-                 for idx in range(self.num_layers)]
-            )
+            batch_size = self.config['batch_size']
 
             cell = tf.contrib.rnn.MultiRNNCell([self.make_cell() for _ in range(self.num_layers)], state_is_tuple=True)
 
-            output, self.final_state = tf.nn.dynamic_rnn(cell, self.input_, dtype=tf.float32, initial_state=rnn_tuple_state)
+            # the idea of sharing the internal rnn-cell-state via tf-variables is based on this code:
+            # https://stackoverflow.com/questions/38441589/is-rnn-initial-state-reset-for-subsequent-mini-batches
+            states = create_empty_rnn_state_variables(batch_size, cell)
+
+            output, new_state = tf.nn.dynamic_rnn(cell, self.input_, dtype=tf.float32, initial_state=states)
+
+            # Add an operation to update the train states with the last state tensors.
+            self.update_internal_rnn_state = update_rnn_state_variables(states, new_state)
 
             # we flatten down the output for the matrix multiplication to 700 * 650. (the 700 is 35 * 20, so just flatten the batches)
             output = tf.reshape(output, [-1, self.hidden_units])
 
             # we need to have a prediction with output size 20 * 35 * 75, so we multiply with a weight matrix of 650 * 75
-            softmax_w = tf.Variable(tf.random_uniform([self.hidden_units, self.output_dim], -1 * self.init_scale_weights, self.init_scale_weights))
-            softmax_b = tf.Variable(tf.random_uniform([self.output_dim], -1 * self.init_scale_weights, self.init_scale_weights))
+            weight = tf.Variable(tf.random_uniform([self.hidden_units, self.output_dim], -1 * self.init_scale_weights, self.init_scale_weights))
+            bias = tf.Variable(tf.random_uniform([self.output_dim], -1 * self.init_scale_weights, self.init_scale_weights))
 
-            logits = tf.nn.xw_plus_b(output, softmax_w, softmax_b)
+            output_transformed = tf.nn.xw_plus_b(output, weight, bias)
 
             # Reshape logits to be a 3-D tensor for the loss function
-            self.prediction = tf.reshape(logits, [self.batch_size, self.max_seq_length, self.output_dim])
+            self.prediction = tf.reshape(output_transformed, [self.batch_size, self.max_seq_length, self.output_dim])
 
+            # not sure if we really need this two variables, but the comments says so.
+            self.final_state = new_state
+            self.initial_state = states
 
     def make_cell(self):
         cell = tf.contrib.rnn.LSTMCell(self.hidden_units, forget_bias=1.0)
@@ -99,7 +100,6 @@ class RNNModel(object):
             cell = tf.contrib.rnn.DropoutWrapper(cell, output_keep_prob=self.config['dropout_on_lstm_cell'])
 
         return cell
-
 
     def build_loss(self):
         """
@@ -149,3 +149,29 @@ class RNNModel(object):
                      self.mask: batch.mask}
 
         return feed_dict
+
+
+def update_rnn_state_variables(state_variables, new_states):
+    # Add an operation to update the train states with the last state tensors
+    update_ops = []
+    for state_variable, new_state in zip(state_variables, new_states):
+        # Assign the new state to the state variables on this layer
+        update_ops.extend([state_variable[0].assign(new_state[0]),
+                           state_variable[1].assign(new_state[1])])
+    # Return a tuple in order to combine all update_ops into a single operation.
+    # The tuple's actual value should not be used.
+    return tf.tuple(update_ops)
+
+
+def create_empty_rnn_state_variables(batch_size, cell):
+    # For each layer, get the initial state and make a variable out of it
+    # to enable updating its value.
+    # this variables are only used to transfer the internal state between the batches and they should not get trained!
+    state_variables = []
+    for state_c, state_h in cell.zero_state(batch_size, tf.float32):
+        state_variables.append(tf.contrib.rnn.LSTMStateTuple(
+            tf.Variable(state_c, trainable=False),
+            tf.Variable(state_h, trainable=False)))
+
+    # Return as a tuple, so that it can be fed to dynamic_rnn as an initial state
+    return tuple(state_variables)
