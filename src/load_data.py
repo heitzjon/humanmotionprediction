@@ -100,7 +100,7 @@ class Feeder(AbstractFeeder):
         self._batch_size = batch_size
         self._rng = rng
 
-        # how many batches we have
+        # how many batches we have to run? example 5873 / 2 = 2937
         self._n_batches = int(np.ceil(float(len(self._dataset.input_)) / float(batch_size)))
 
         # pointers to the next available batch
@@ -169,7 +169,9 @@ class Batch(object):
         """
         if self._mask is None:
             max_seq_length = max(self.seq_lengths)
+            # a bit of a strange way to get the mask... see the np.tril() function to understand it.
             ltri = np.tril(np.ones([max_seq_length, max_seq_length]))
+            # this way we return a 2-dimensional mask array for all sequences.
             self._mask = ltri[self.seq_lengths - 1]
         return self._mask
 
@@ -241,12 +243,11 @@ class MotionDataset(Dataset, Feeder):
         all_ids = []
         all_action_labels = []
 
+        # here "unroll" the data set in the splits we use later for training (e.g. 35 frames per split)
         for d in data:
             angles = d['angles']
             angles_s = _split(angles)
             all_angles.extend(angles_s)
-            # the next lines are only necessary in case of a split (which we currently don't use).
-            # In that case, you would have multiple entries with the same value in all_ids/all_actions (one per split)
             all_ids.extend([d['id']]*len(angles_s))
             all_action_labels.extend([d['action_label']]*len(angles_s))
 

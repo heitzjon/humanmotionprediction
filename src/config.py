@@ -3,16 +3,22 @@ train_config = {}
 train_config['data_dir'] = '../data'  # TODO where the data downloaded from Kaggle is stored, i.e. the *.npz files
 train_config['output_dir'] = '../trained_models/'  # TODO where you want to store the checkpoints of different training runs
 train_config['name'] = 'dummy_model'
-train_config['batch_size'] = 3  # can not be zero!
-train_config['max_seq_length'] = -1  # TODO specify for how many time steps you want to unroll the RNN (this is currently just a dummy value)
+train_config['batch_size'] = 2  # can not be zero!
+train_config['max_seq_length'] = 35  # TODO specify for how many time steps you want to unroll the RNN (this is currently just a dummy value)
+train_config['num_of_layers'] = 2
+train_config['hidden_units'] = 650
+# see https://stackoverflow.com/questions/45507315/what-exactly-does-tf-contrib-rnn-dropoutwrapper-in-tensorflow-do-three-cit
+train_config['dropout_on_lstm_cell'] = 0.5
+train_config['init_scale_weights'] = 0.05
+train_config['max_grad_norm'] = 5
 
-train_config['learning_rate'] = 1.0  # TODO specify a learning rate (this is currently just a dummy value)
-train_config['n_epochs'] = 0  # TODO for how many epochs to train (this is currently just a dummy value)
+train_config['n_epochs'] = 10  # TODO for how many epochs to train (this is currently just a dummy value)
 train_config['save_checkpoints_every_epoch'] = 1  # after how many epochs the trained model should be saved
 train_config['n_keep_checkpoints'] = 3  # how many saved checkpoints to keep
 
+train_config['learning_rate'] = 1.0
 # some code to anneal the learning rate, this is implemented for you, you can just choose it here
-train_config['learning_rate_type'] = 'fixed'  # ['fixed', 'exponential', 'linear']
+train_config['learning_rate_type'] = 'linear'  # ['fixed', 'exponential', 'linear']
 train_config['learning_rate_decay_steps'] = 1000
 train_config['learning_rate_decay_rate'] = 0.95
 

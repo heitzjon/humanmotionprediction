@@ -1,6 +1,7 @@
 import datetime
 import os
 import tensorflow as tf
+import numpy as np
 import time
 from config import train_config
 
@@ -20,6 +21,8 @@ def load_data(config, split):
 def get_model_and_placeholders(config):
     # create placeholders that we need to feed the required data into the model
     # None means that the dimension is variable, which we want for the batch size and the sequence length
+
+    # input_dim is normally 75
     input_dim = output_dim = config['input_dim']
 
     input_pl = tf.placeholder(tf.float32, shape=[None, None, input_dim], name='input_pl')
@@ -82,8 +85,15 @@ def main(config):
             raise ValueError('learning rate type "{}" unknown.'.format(config['learning_rate_type']))
 
         # TODO choose the optimizer you desire here and define `train_op. The loss should be accessible through rnn_model.loss
+        optimizer = tf.train.GradientDescentOptimizer(lr)
+
         params = tf.trainable_variables()
-        train_op = None
+        grads, _ = tf.clip_by_global_norm(tf.gradients(rnn_model.loss, params), config['max_grad_norm'])
+        train_op = optimizer.apply_gradients(
+            zip(grads, params),
+            global_step=tf.train.get_or_create_global_step())
+
+        # train_op = optimizer.minimize(loss=rnn_model.loss, global_step=tf.train.get_global_step())
 
     # create a graph for validation
     with tf.name_scope('validation'):
@@ -134,6 +144,10 @@ def main(config):
             # reshuffle the batches
             data_train.reshuffle()
 
+            # at every new epoch we need to reset the state of the RNN.
+            # TODO: is there a better way?
+            current_state = np.zeros((config['num_of_layers'], 2, config['batch_size'], config['hidden_units']))
+
             # loop through all training batches
             for i, batch in enumerate(data_train.all_batches()):
                 step = tf.train.global_step(sess, global_step)
@@ -145,13 +159,20 @@ def main(config):
                 # we want to train, so must request at least the train_op
                 fetches = {'summaries': summaries_training,
                            'loss': rnn_model.loss,
-                           'train_op': train_op}
+                           'train_op': train_op,
+                           'state': rnn_model.final_state}  # get the last state from the RNN so we can add it in the next batch
 
                 # get the feed dict for the current batch
                 feed_dict = rnn_model.get_feed_dict(batch)
 
+                # add the state to the feed dict (TODO: is there a better way?)
+                feed_dict[rnn_model.initial_state] = current_state
+
                 # feed data into the model and run optimization
                 training_out = sess.run(fetches, feed_dict)
+
+                # TODO: is there a better way?
+                current_state = fetches['state']
 
                 # write logs
                 train_summary_writer.add_summary(training_out['summaries'], global_step=step)
