@@ -47,11 +47,11 @@ def main(config):
 
             # here we are requesting the final state as we later want to supply this back into the RNN
             # this is why the model should have a member `self.final_state`
-            fetch = [rnn_model.final_state]
+            fetch = [rnn_model.final_state, rnn_model.update_internal_rnn_state]
             feed_dict = {placeholders['input_pl']: input_,
                          placeholders['seq_lengths_pl']: batch.seq_lengths}
 
-            [state] = sess.run(fetch, feed_dict)
+            [state, _] = sess.run(fetch, feed_dict)
 
             # now get the prediction by predicting one pose at a time and feeding this pose back into the model to
             # get the prediction for the subsequent time step
@@ -65,13 +65,15 @@ def main(config):
                 #   3) fetch both the final state and prediction of the RNN model that are then re-used in the next
                 #      iteration
 
+                # fetch = [state]
+                # feed_dict = {placeholders['input_pl']: next_pose,
+                #          placeholders['seq_lengths_pl']: batch.seq_lengths}
 
-                fetch = [state]
+                fetch = [rnn_model.prediction, rnn_model.update_internal_rnn_state]
                 feed_dict = {placeholders['input_pl']: next_pose,
-                         placeholders['seq_lengths_pl']: batch.seq_lengths}
+                             placeholders['seq_lengths_pl']: batch.batch_size * [1]}
 
-
-                [state, predicted_pose] = sess.run(fetch, feed_dict)
+                [predicted_pose, _] = sess.run(fetch, feed_dict)
 
                 predicted_poses.append(np.copy(predicted_pose))
                 next_pose = predicted_pose
