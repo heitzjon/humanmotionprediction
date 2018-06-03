@@ -12,6 +12,8 @@ def main(config):
     # load the data
     data_test = load_data(config, 'test')
 
+    tf.reset_default_graph()
+
     config['input_dim'] = config['output_dim'] = data_test.input_[0].shape[-1]
     rnn_model, placeholders = get_model_and_placeholders(config)
 
