@@ -81,8 +81,8 @@ class RNNModel(object):
             output = tf.reshape(output, [-1, self.hidden_units])
 
             # we need to have a prediction with output size 20 * 35 * 75, so we multiply with a weight matrix of 650 * 75
-            weight = tf.Variable(tf.random_uniform([self.hidden_units, self.output_dim], -1 * self.init_scale_weights, self.init_scale_weights))
-            bias = tf.Variable(tf.random_uniform([self.output_dim], -1 * self.init_scale_weights, self.init_scale_weights))
+            weight = tf.get_variable(name='output_weight', initializer=tf.random_uniform([self.hidden_units, self.output_dim], -1 * self.init_scale_weights, self.init_scale_weights))
+            bias = tf.get_variable(name='output_bias', initializer=tf.random_uniform([self.output_dim], -1 * self.init_scale_weights, self.init_scale_weights))
 
             output_transformed = tf.nn.xw_plus_b(output, weight, bias)
 
@@ -168,10 +168,10 @@ def create_empty_rnn_state_variables(batch_size, cell):
     # to enable updating its value.
     # this variables are only used to transfer the internal state between the batches and they should not get trained!
     state_variables = []
-    for state_c, state_h in cell.zero_state(batch_size, tf.float32):
+    for idx, (state_c, state_h) in enumerate(cell.zero_state(batch_size, tf.float32)):
         state_variables.append(tf.contrib.rnn.LSTMStateTuple(
-            tf.Variable(state_c, trainable=False),
-            tf.Variable(state_h, trainable=False)))
+            tf.get_variable(name='transfer_state_c_{}'.format(idx), initializer=state_c, trainable=False),
+            tf.get_variable(name='transfer_state_h_{}'.format(idx), initializer=state_h, trainable=False)))
 
     # Return as a tuple, so that it can be fed to dynamic_rnn as an initial state
     return tuple(state_variables)
