@@ -2,6 +2,9 @@ import os
 import tensorflow as tf
 import numpy as np
 
+import matplotlib
+matplotlib.use('TkAgg')
+
 from config import test_config
 from visualize import visualize_joint_angles
 from utils import export_to_csv
