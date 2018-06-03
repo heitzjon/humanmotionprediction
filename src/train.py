@@ -134,7 +134,7 @@ def main(config):
         valid_summary_writer = tf.summary.FileWriter(valid_summary_dir, sess.graph)
 
         # create a saver for writing training checkpoints
-        saver = tf.train.Saver(var_list=tf.trainable_variables(), max_to_keep=config['n_keep_checkpoints'])
+        saver = tf.train.Saver(max_to_keep=config['n_keep_checkpoints'])
 
         # start training
         start_time = time.time()
