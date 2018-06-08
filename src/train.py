@@ -161,6 +161,7 @@ def main(config):
                 feed_dict = rnn_model.get_feed_dict(batch)
 
                 # feed data into the model and run optimization
+                xyz = batch.mask
                 training_out, _ = sess.run([fetches, rnn_model.update_internal_rnn_state], feed_dict)
 
                 # write logs

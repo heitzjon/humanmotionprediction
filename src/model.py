@@ -1,5 +1,6 @@
 import tensorflow as tf
 from tensorflow.python.ops.losses.losses_impl import Reduction
+import numpy as np
 
 
 class RNNModel(object):
@@ -107,22 +108,39 @@ class RNNModel(object):
         """
         # only need loss if we are not in inference mode
         if self.mode is not 'inference':
-            with tf.name_scope('loss'):
+            #with tf.name_scope('xloss'):
                 # You can access the outputs of the model via `self.prediction` and the corresponding targets via
                 # `self.target`. Hint 1: you will want to use the provided `self.mask` to make sure that padded values
                 # do not influence the loss. Hint 2: L2 loss is probably a good starting point ...
 
                 # Note Ursin: for the L2 loss function the mask should not be necessary to check
 
+
+                # self.loss = tf.losses.mean_squared_error(
+                #     labels=self.target,
+                #     predictions=self.prediction,
+                #     weights=1.0,
+                #     scope=None,
+                #     loss_collection=tf.GraphKeys.LOSSES,
+                #     reduction=Reduction.SUM_BY_NONZERO_WEIGHTS
+                # )
+                #
+                # #self.weighted_loss = self.loss * tf.reshape(self.mask, [-1])
+                #
+                # tf.summary.scalar('xloss', self.loss, collections=[self.summary_collection])
+
+            with tf.name_scope('loss'):
+
                 self.loss = tf.losses.mean_squared_error(
                     labels=self.target,
                     predictions=self.prediction,
-                    weights=1.0,
+                    weights=self.mask[..., None] * np.ones(self.input_dim),
                     scope=None,
                     loss_collection=tf.GraphKeys.LOSSES,
                     reduction=Reduction.SUM_BY_NONZERO_WEIGHTS
                 )
                 tf.summary.scalar('loss', self.loss, collections=[self.summary_collection])
+
 
     def count_parameters(self):
         """
