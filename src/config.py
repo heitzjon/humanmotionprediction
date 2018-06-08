@@ -5,15 +5,15 @@ train_config['output_dir'] = '../trained_models/'  # where you want to store the
 train_config['name'] = 'dummy_model'
 train_config['batch_size'] = 20  # can not be zero!
 train_config['max_seq_length'] = 50  # specify for how many time steps you want to unroll the RNN
-train_config['num_of_layers'] = 2
-train_config['hidden_units'] = 650
+train_config['num_of_layers'] = 3
+train_config['hidden_units'] = 1500
 
 # see https://stackoverflow.com/questions/45507315/what-exactly-does-tf-contrib-rnn-dropoutwrapper-in-tensorflow-do-three-cit
 train_config['dropout_on_lstm_cell'] = 0.5
 train_config['init_scale_weights'] = 0.05
 train_config['max_grad_norm'] = 5
 
-train_config['n_epochs'] = 50  #
+train_config['n_epochs'] = 100  #
 train_config['save_checkpoints_every_epoch'] = 1  # after how many epochs the trained model should be saved
 train_config['n_keep_checkpoints'] = 3  # how many saved checkpoints to keep
 
@@ -26,6 +26,6 @@ train_config['learning_rate_decay_rate'] = 0.95
 # some additional configuration parameters required when the configured model is used at inference time
 test_config = train_config.copy()
 test_config['max_seq_length'] = 50  # want to use entire sequence during test, which is fixed to 50, don't change this
-test_config['model_dir'] = '../trained_models/dummy_model_1528023836/'  # path to the model that you want to evaluate
+test_config['model_dir'] = '../trained_models/dummy_model_1528445034/'  # path to the model that you want to evaluate
 test_config['checkpoint_id'] = None  # if None, the last checkpoint will be used
 test_config['prediction_length'] = 25  # how many frames to predict into the future (assignment requires 25 frames, but you can experiment with more if you'd like)

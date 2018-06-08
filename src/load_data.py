@@ -85,10 +85,11 @@ class AbstractFeeder(object):
         """
         raise NotImplementedError('Method is abstract.')
 
-    def batch_from_idxs(self, indices):
+    def batch_from_idxs(self, indices, padd_batch_size):
         """
         Return a batch consisting of the data points at the given indices.
         :param indices: Which data points to retrieve from the dataset.
+        :param padd_batch_size: padd the batch with some empty lines (important: not the length, but the depth of the batch!)
         :return: A batch of size len(indices)
         """
         raise NotImplementedError('Method is abstract.')
@@ -106,8 +107,8 @@ class Feeder(AbstractFeeder):
         # a batch-size of only 13 instead of 20). This causes an error in training.
         # That's why we currently just forget the last batch...
 
-        # self._n_batches = int(np.ceil(float(len(self._dataset.input_)) / float(batch_size)))
-        self._n_batches = int(np.floor(float(len(self._dataset.input_)) / float(batch_size)))
+        self._n_batches = int(np.ceil(float(len(self._dataset.input_)) / float(batch_size)))
+        # self._n_batches = int(np.floor(float(len(self._dataset.input_)) / float(batch_size)))
 
         # pointers to the next available batch
         self._batch_ptr = 0
@@ -132,11 +133,14 @@ class Feeder(AbstractFeeder):
         start_idx = batch_ptr * self._batch_size
         end_idx = (batch_ptr + 1) * self._batch_size
 
+        padd_batch_size = max(0,end_idx - len(self._indices))
+
         # because we want to use all available data, must be careful that `end_idx` is valid
         end_idx = end_idx if end_idx <= len(self._indices) else len(self._indices)
         indices_access = self._indices_unshuffled if no_shuffle else self._indices
         indices = indices_access[start_idx:end_idx]
-        batch = self.batch_from_idxs(indices)
+
+        batch = self.batch_from_idxs(indices, padd_batch_size)
         return batch
 
     def next_batch(self, no_shuffle=False):
@@ -300,11 +304,12 @@ class MotionDataset(Dataset, Feeder):
         # create batch_wise access by initializing the feeder parent class
         Feeder.__init__(self, self, batch_size, rng)
 
-    def batch_from_idxs(self, indices):
-        input_ = [np.copy(self.input_[i]) for i in indices]
-        target = [np.copy(self.target[i]) for i in indices] if self.target is not None else None
-        ids = [self.ids[i] for i in indices]
-        action_labels = [self.action_labels[i] for i in indices]
+    def batch_from_idxs(self, indices, padd_batch_size):
+        input_ = [np.copy(self.input_[i]) for i in indices] + (padd_batch_size * [np.zeros((self.input_[0].shape[0], self.input_[0].shape[1]), dtype=float)])
+        target = [np.copy(self.target[i]) for i in indices] + (padd_batch_size * [np.zeros((self.input_[0].shape[0], self.input_[0].shape[1]), dtype=float)]) \
+            if self.target is not None else None
+        ids = [self.ids[i] for i in indices] + (padd_batch_size * [-1])
+        action_labels = [self.action_labels[i] for i in indices] + (padd_batch_size * [-1])
         return Batch(input_, target, ids=ids, action_labels=action_labels)
 
 

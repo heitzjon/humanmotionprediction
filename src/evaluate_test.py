@@ -89,6 +89,9 @@ def main(config):
         seeds = np.concatenate(seeds, axis=0)
         predictions = np.concatenate(predictions, axis=0)
 
+    seeds = seeds[0:len(data_test.input_)]
+    predictions = predictions[0:len(data_test.input_)]
+    ids = ids[0:len(data_test.input_)]
 
     # the predictions are now stored in test_predictions, you can do with them what you want
     # for example, visualize a random entry

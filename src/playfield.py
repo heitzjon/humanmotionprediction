@@ -7,10 +7,7 @@ from config import train_config
 from sklearn.metrics import mean_squared_error
 
 
-
-
 def dummy():
-
     config = train_config
 
     data_train = load_data(config, 'train')
@@ -39,4 +36,9 @@ def dummy():
 
 
 if __name__ == '__main__':
-    dummy()
+    a = np.ones((6, 8))
+    b = a[..., None]
+    c = b * np.ones(75)
+    print(b)
+
+
