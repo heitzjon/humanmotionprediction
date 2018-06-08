@@ -45,7 +45,7 @@ def main(config):
 
             # initialize the RNN with the known sequence (here 2 seconds)
             # no need to pad the batch because in the test set all batches have the same length
-            input_ = np.array(batch.input_)
+            input_, _ = batch.get_padded_data(pad_target=False)
             seeds.append(input_)
 
             # here we are requesting the final state as we later want to supply this back into the RNN
@@ -89,9 +89,9 @@ def main(config):
         seeds = np.concatenate(seeds, axis=0)
         predictions = np.concatenate(predictions, axis=0)
 
-    seeds = seeds[0:len(data_test.input_)]
-    predictions = predictions[0:len(data_test.input_)]
-    ids = ids[0:len(data_test.input_)]
+    # seeds = seeds[0:len(data_test.input_)]
+    # predictions = predictions[0:len(data_test.input_)]
+    # ids = ids[0:len(data_test.input_)]
 
     # the predictions are now stored in test_predictions, you can do with them what you want
     # for example, visualize a random entry

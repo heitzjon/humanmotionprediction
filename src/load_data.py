@@ -181,8 +181,14 @@ class Batch(object):
             max_seq_length = max(self.seq_lengths)
             # a bit of a strange way to get the mask... see the np.tril() function to understand it.
             ltri = np.tril(np.ones([max_seq_length, max_seq_length]))
-            # this way we return a 2-dimensional mask array for all sequences.
-            self._mask = ltri[self.seq_lengths - 1]
+
+            self._mask = np.zeros((len(self.input_), max_seq_length))
+
+            for i, seq_length in enumerate(self.seq_lengths):
+                if seq_length > 0:
+                    self._mask[i] = ltri[seq_length - 1]
+                # in case seq_length is 0 --> do nothing, as we already initialize the mask with zeros.
+
         return self._mask
 
     def get_padded_data(self, pad_target=True):
@@ -305,8 +311,8 @@ class MotionDataset(Dataset, Feeder):
         Feeder.__init__(self, self, batch_size, rng)
 
     def batch_from_idxs(self, indices, padd_batch_size):
-        input_ = [np.copy(self.input_[i]) for i in indices] + (padd_batch_size * [np.zeros((self.input_[0].shape[0], self.input_[0].shape[1]), dtype=float)])
-        target = [np.copy(self.target[i]) for i in indices] + (padd_batch_size * [np.zeros((self.input_[0].shape[0], self.input_[0].shape[1]), dtype=float)]) \
+        input_ = [np.copy(self.input_[i]) for i in indices] + (padd_batch_size * [np.zeros((0, self.input_[0].shape[1]), dtype=float)])
+        target = [np.copy(self.target[i]) for i in indices] + (padd_batch_size * [np.zeros((0, self.input_[0].shape[1]), dtype=float)]) \
             if self.target is not None else None
         ids = [self.ids[i] for i in indices] + (padd_batch_size * [-1])
         action_labels = [self.action_labels[i] for i in indices] + (padd_batch_size * [-1])
