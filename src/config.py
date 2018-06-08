@@ -2,18 +2,22 @@
 train_config = {}
 train_config['data_dir'] = '../data'  # where the data downloaded from Kaggle is stored, i.e. the *.npz files
 train_config['output_dir'] = '../trained_models/'  # where you want to store the checkpoints of different training runs
-train_config['name'] = 'dummy_model'
+train_config['name'] = 'maskedloss_model'
 train_config['batch_size'] = 20  # can not be zero!
 train_config['max_seq_length'] = 50  # specify for how many time steps you want to unroll the RNN
-train_config['num_of_layers'] = 3
-train_config['hidden_units'] = 1500
+
+train_config['num_of_layers'] = 3 #2 #3
+train_config['hidden_units'] = 1500 #650 #1500
+
 
 # see https://stackoverflow.com/questions/45507315/what-exactly-does-tf-contrib-rnn-dropoutwrapper-in-tensorflow-do-three-cit
 train_config['dropout_on_lstm_cell'] = 0.5
 train_config['init_scale_weights'] = 0.05
 train_config['max_grad_norm'] = 5
 
-train_config['n_epochs'] = 100  #
+
+train_config['n_epochs'] = 100  #20
+
 train_config['save_checkpoints_every_epoch'] = 1  # after how many epochs the trained model should be saved
 train_config['n_keep_checkpoints'] = 3  # how many saved checkpoints to keep
 
