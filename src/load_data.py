@@ -199,21 +199,26 @@ class Batch(object):
         max_seq_length = max(self.seq_lengths)
 
         inputs = []
-        targets = []
-        for x, y in zip(self.input_, self.target):
+        for x in self.input_:
             missing = max_seq_length - x.shape[0]
-            x_padded, y_padded = x, y
+            x_padded = x
             if missing > 0:
                 # this batch entry has a smaller sequence length then the max sequence length, so pad it with zeros
                 x_dof = x.shape[1]
                 x_padded = np.concatenate([x, np.zeros(shape=[missing, x_dof])], axis=0)
-                if pad_target:
-                    y_dof = y.shape[1]
-                    y_padded = np.concatenate([y, np.zeros(shape=[missing, y_dof])], axis=0)
+
             assert len(x_padded) == max_seq_length
             inputs.append(x_padded)
 
-            if pad_target:
+        targets = []
+        if pad_target:
+            for y in self.target:
+                missing = max_seq_length - y.shape[0]
+                y_padded = y
+                if missing > 0:
+                    y_dof = y.shape[1]
+                    y_padded = np.concatenate([y, np.zeros(shape=[missing, y_dof])], axis=0)
+
                 assert len(y_padded) == max_seq_length
                 targets.append(y_padded)
 
