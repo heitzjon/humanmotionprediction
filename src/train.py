@@ -5,7 +5,7 @@ import numpy as np
 import time
 from config import train_config
 
-from model import RNNModel
+from model import RNNModel, DAEModel
 from load_data import MotionDataset
 from utils import export_config
 
@@ -55,7 +55,9 @@ def main(config):
     # TODO if you would like to do any preprocessing of the data, here would be a good opportunity
 
     # get input placeholders and get the model that we want to train
-    rnn_model_class, placeholders = get_model_and_placeholders(config)
+
+    # rnn_model_class, placeholders = get_model_and_placeholders(config)
+    dae_model_class = DAEModel
 
     # Create a variable that stores how many training iterations we performed.
     # This is useful for saving/storing the network
@@ -63,46 +65,39 @@ def main(config):
 
     # create a training graph, this is the graph we will use to optimize the parameters
     with tf.name_scope('training'):
-        rnn_model = rnn_model_class(config, placeholders, mode='training')
-        rnn_model.build_graph()
-        print('created RNN model with {} parameters'.format(rnn_model.n_parameters))
+        dae_model = dae_model_class(config, mode='training')
+        dae_model.build_graph()
+        print('created Dropout Auto Encoder model with {} parameters'.format(dae_model.n_parameters))
 
         # configure learning rate
         if config['learning_rate_type'] == 'exponential':
-            lr = tf.train.exponential_decay(config['learning_rate'],
-                                            global_step=global_step,
-                                            decay_steps=config['learning_rate_decay_steps'],
-                                            decay_rate=config['learning_rate_decay_rate'],
-                                            staircase=False)
-            lr_decay_op = tf.identity(lr)
+            learning_rate = tf.train.exponential_decay(config['learning_rate'],
+                                                       global_step=global_step,
+                                                       decay_steps=config['learning_rate_decay_steps'],
+                                                       decay_rate=config['learning_rate_decay_rate'],
+                                                       staircase=False)
+            lr_decay_op = tf.identity(learning_rate)
         elif config['learning_rate_type'] == 'linear':
-            lr = tf.Variable(config['learning_rate'], trainable=False)
-            lr_decay_op = lr.assign(tf.multiply(lr, config['learning_rate_decay_rate']))
+            learning_rate = tf.Variable(config['learning_rate'], trainable=False)
+            lr_decay_op = learning_rate.assign(tf.multiply(learning_rate, config['learning_rate_decay_rate']))
         elif config['learning_rate_type'] == 'fixed':
-            lr = config['learning_rate']
-            lr_decay_op = tf.identity(lr)
+            learning_rate = config['learning_rate']
+            lr_decay_op = tf.identity(learning_rate)
         else:
             raise ValueError('learning rate type "{}" unknown.'.format(config['learning_rate_type']))
 
         # choose the optimizer you desire here and define `train_op. The loss should be accessible through rnn_model.loss
-        optimizer = tf.train.GradientDescentOptimizer(lr)
-
-        params = tf.trainable_variables()
-        grads, _ = tf.clip_by_global_norm(tf.gradients(rnn_model.loss, params), config['max_grad_norm'])
-        train_op = optimizer.apply_gradients(
-            zip(grads, params),
-            global_step=tf.train.get_or_create_global_step())
-
-        # train_op = optimizer.minimize(loss=rnn_model.loss, global_step=tf.train.get_global_step())
+        train_op = tf.train.GradientDescentOptimizer(learning_rate).minimize(loss=dae_model.loss,
+                                                                             global_step=tf.train.get_or_create_global_step())
 
     # create a graph for validation
     with tf.name_scope('validation'):
-        rnn_model_valid = rnn_model_class(config, placeholders, mode='validation')
-        rnn_model_valid.build_graph()
+        dae_model_valid = dae_model_class(config, mode='validation')
+        dae_model_valid.build_graph()
 
     # Create summary ops for monitoring the training
     # Each summary op annotates a node in the computational graph and collects data data from it
-    tf.summary.scalar('learning_rate', lr, collections=['training_summaries'])
+    tf.summary.scalar('learning_rate', learning_rate, collections=['training_summaries'])
 
     # Merge summaries used during training and reported after every step
     summaries_training = tf.summary.merge(tf.get_collection('training_summaries'))
@@ -154,15 +149,17 @@ def main(config):
 
                 # we want to train, so must request at least the train_op
                 fetches = {'summaries': summaries_training,
-                           'loss': rnn_model.loss,
+                           'loss': dae_model.loss,
+                           'prediction': dae_model.prediction,
+                           'input': dae_model.input,
+                           'target': dae_model.target,
                            'train_op': train_op}
 
                 # get the feed dict for the current batch
-                feed_dict = rnn_model.get_feed_dict(batch)
+                feed_dict = dae_model.get_feed_dict(batch)
 
                 # feed data into the model and run optimization
-                xyz = batch.mask
-                training_out, _ = sess.run([fetches, rnn_model.update_internal_rnn_state], feed_dict)
+                training_out = sess.run(fetches, feed_dict)
 
                 # write logs
                 train_summary_writer.add_summary(training_out['summaries'], global_step=step)
@@ -176,8 +173,8 @@ def main(config):
             total_valid_loss = 0.0
             n_valid_samples = 0
             for batch in data_valid.all_batches():
-                fetches = {'loss': rnn_model_valid.loss}
-                feed_dict = rnn_model_valid.get_feed_dict(batch)
+                fetches = {'loss': dae_model.loss}
+                feed_dict = dae_model.get_feed_dict(batch)
                 valid_out = sess.run(fetches, feed_dict)
 
                 total_valid_loss += valid_out['loss'] * batch.batch_size

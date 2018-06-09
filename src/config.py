@@ -2,7 +2,7 @@
 train_config = {}
 train_config['data_dir'] = '../data'  # where the data downloaded from Kaggle is stored, i.e. the *.npz files
 train_config['output_dir'] = '../trained_models/'  # where you want to store the checkpoints of different training runs
-train_config['name'] = 'maskedloss_model'
+train_config['name'] = 'dae'
 train_config['batch_size'] = 20  # can not be zero!
 train_config['max_seq_length'] = 50  # specify for how many time steps you want to unroll the RNN
 
@@ -20,6 +20,11 @@ train_config['n_epochs'] = 100  #20
 
 train_config['save_checkpoints_every_epoch'] = 1  # after how many epochs the trained model should be saved
 train_config['n_keep_checkpoints'] = 3  # how many saved checkpoints to keep
+
+# config for auto-encoder
+train_config['first_layer_dropout_ae'] = 0.5
+train_config['dense_layer_units_ae'] = 500
+train_config['l2_regularization_ae'] = 0.001
 
 train_config['learning_rate'] = 1.0
 # some code to anneal the learning rate, this is implemented for you, you can just choose it here

@@ -3,6 +3,116 @@ from tensorflow.python.ops.losses.losses_impl import Reduction
 import numpy as np
 
 
+class DAEModel(object):
+    """
+    Creates training and validation computational graphs.
+    Note that tf.variable_scope enables parameter sharing so that both graphs are identical.
+    """
+    def __init__(self, config, mode):
+        """
+        Basic setup.
+        :param config: configuration dictionary
+        :param mode: training, validation or inference
+        """
+        assert mode in ['training', 'validation', 'inference']
+        self.config = config
+        self.mode = mode
+        self.is_training = self.mode == 'training'
+        self.reuse = self.mode == 'validation'
+
+        # input_dim/output_dim is 75
+        self.input_dim = config['input_dim']
+        self.output_dim = config['output_dim']
+
+        self.batch_size = self.config['batch_size']
+        self.input_dim = self.config['input_dim']
+        self.output_dim = self.config['output_dim']
+
+        self.first_layer_dropout_rate = self.config['first_layer_dropout_ae']
+        self.dense_layer_units = self.config['dense_layer_units_ae']
+        self.l2_regularization = self.config['l2_regularization_ae']
+
+        self.summary_collection = 'training_summaries' if mode == 'training' else 'validation_summaries'
+
+    def build_graph(self):
+        self.build_model()
+        self.build_loss()
+        self.count_parameters()
+
+    def build_model(self):
+        """
+        Builds the actual model.
+        """
+
+        with tf.variable_scope('dae_model', reuse=self.reuse):
+
+            self.input = tf.placeholder(tf.float32, (self.batch_size, None, self.input_dim), name='input')
+            self.target = tf.placeholder(tf.float32, (self.batch_size, None, self.output_dim), name='target')
+
+            dropout_input = tf.layers.dropout(inputs=self.input, rate=self.first_layer_dropout_rate, training=self.is_training)
+
+            encoder_dense1 = tf.layers.dense(inputs=dropout_input, units=self.dense_layer_units,
+                                             activation=tf.nn.relu, kernel_regularizer=tf.contrib.layers.l2_regularizer(self.l2_regularization))
+            encoder_dense2 = tf.layers.dense(inputs=encoder_dense1, units=self.dense_layer_units,
+                                             activation=tf.nn.relu, kernel_regularizer=tf.contrib.layers.l2_regularizer(self.l2_regularization))
+
+            decoder_dense1 = tf.layers.dense(inputs=encoder_dense2, units=self.dense_layer_units, activation=tf.nn.relu,
+                                             kernel_regularizer=tf.contrib.layers.l2_regularizer(self.l2_regularization))
+            decoder_dense2 = tf.layers.dense(inputs=decoder_dense1, units=self.dense_layer_units, activation=tf.nn.relu,
+                                             kernel_regularizer=tf.contrib.layers.l2_regularizer(self.l2_regularization))
+
+            self.prediction = tf.layers.dense(inputs=decoder_dense2, units=self.output_dim, activation=tf.nn.tanh,
+                                              kernel_regularizer=tf.contrib.layers.l2_regularizer(self.l2_regularization))
+
+    def build_loss(self):
+        """
+        Builds the loss function.
+        """
+        # only need loss if we are not in inference mode
+        if self.mode is not 'inference':
+            with tf.name_scope('loss'):
+
+                self.loss = tf.losses.mean_squared_error(
+                    labels=self.target,
+                    predictions=self.prediction,
+                    scope=None,
+                    loss_collection=tf.GraphKeys.LOSSES,
+                    reduction=Reduction.SUM_OVER_BATCH_SIZE
+                ) + tf.losses.get_regularization_loss() # important! add the regularization-loss
+
+                # self.loss = tf.sqrt(tf.reduce_mean(tf.square(self.target - self.prediction)))
+
+                tf.summary.scalar('loss', self.loss, collections=[self.summary_collection])
+
+    def count_parameters(self):
+        """
+        Counts the number of trainable parameters in this model
+        """
+        self.n_parameters = 0
+        for v in tf.trainable_variables():
+            params = 1
+            for s in v.get_shape():
+                params *= s.value
+            self.n_parameters += params
+
+    def get_feed_dict(self, batch):
+        """
+        Returns the feed dictionary required to run one training step with the model.
+        :param batch: The mini batch of data to feed into the model
+        :return: A feed dict that can be passed to a session.run call
+        """
+
+        # we are not interested in the target data - for the AE, the input is target at the same time!
+        # the same about the sequence-lengths: we don't need them, we train a full batch at a time
+
+        batch_input, _ = batch.get_padded_data(pad_target=False)
+
+        feed_dict = {self.input: batch_input,
+                     self.target: batch_input}
+
+        return feed_dict
+
+
 class RNNModel(object):
     """
     Creates training and validation computational graphs.
@@ -193,3 +303,9 @@ def create_empty_rnn_state_variables(batch_size, cell):
 
     # Return as a tuple, so that it can be fed to dynamic_rnn as an initial state
     return tuple(state_variables)
+
+
+def gaussian_noise_layer(input_layer, std):
+    noise = tf.random_normal(shape=tf.shape(input_layer), mean=0.0, stddev=std, dtype=tf.float32)
+    return input_layer + noise
+
