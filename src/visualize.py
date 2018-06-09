@@ -13,7 +13,7 @@ import numpy as np
 from utils import forward_kinematics, Skeleton
 
 
-def visualize_positions(positions, change_color_after_frame=None, action_label='not provided'):
+def visualize_positions(positions, positions2=None, change_color_after_frame=None, action_label='not provided'):
     """
     Visualize motion given 3D positions. Can visualize several motions side by side. If the sequence lengths don't
     match, all animations are displayed until the shortest sequence length.
@@ -23,6 +23,9 @@ def visualize_positions(positions, change_color_after_frame=None, action_label='
     seq_length = np.amin([pos.shape[0] for pos in positions])
     n_joints = positions[0].shape[1]//3
     pos = [np.reshape(p, [-1, n_joints, 3]) for p in positions]
+    if not positions2 is None:
+        pos2 = [np.reshape(p, [-1, n_joints, 3]) for p in positions2]
+        pos = np.concatenate([pos, pos2], axis=0)
     parents = Skeleton.parents
 
     # create figure with as many subplots as we have skeletons
@@ -121,6 +124,20 @@ def visualize_joint_angles(joint_angles, change_color_after_frame=None):
     visualize_positions(positions, change_color_after_frame)
 
 
+def visualize_multiple_poses(poses_true, poses_pred, change_color_after_frame=None, action_label=None):
+    """
+    Visualize motion given joint angles in exponential map format.
+    :param positions: list of np arrays in shape (seq_length, n_joints*3) giving the 3D positions per joint and frame.
+    :param change_color_after_frame: after this frame id, the color of the plot is changed
+    """
+
+    #positions = [forward_kinematics(ja) for ja in joint_angles]
+
+    positions_true = [forward_kinematics(ja) for ja in poses_true]
+    positions_pred = [forward_kinematics(ja) for ja in poses_pred]
+    visualize_positions(positions_true, positions_pred,change_color_after_frame, action_label)
+
+
 if __name__ == '__main__':
     # the train_data file contains 162 sequences of human motion, all classified with an
     # action label (train_data[i]['action_label']).
@@ -134,4 +151,4 @@ if __name__ == '__main__':
     action_label = train_data[random_sequence_index]['action_label']
 
     positions = forward_kinematics(data)
-    visualize_positions([positions], None, action_label)
+    visualize_positions([positions],  None, action_label)

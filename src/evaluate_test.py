@@ -6,9 +6,10 @@ import matplotlib
 matplotlib.use('TkAgg')
 
 from config import test_config
-from visualize import visualize_joint_angles
+from visualize import visualize_multiple_poses
 from utils import export_to_csv
 from train import load_data, get_model_and_placeholders
+from model import DAEModel
 
 
 def main(config):
@@ -18,12 +19,13 @@ def main(config):
     tf.reset_default_graph()
 
     config['input_dim'] = config['output_dim'] = data_test.input_[0].shape[-1]
-    rnn_model, placeholders = get_model_and_placeholders(config)
+    #dae_model, placeholders = get_model_and_placeholders(config)
+    dae_model_class = DAEModel
 
     # restore the model by first creating the computational graph
     with tf.name_scope('inference'):
-        rnn_model = rnn_model(config, placeholders, mode='inference')
-        rnn_model.build_graph()
+        dae_model = dae_model_class(config, mode='inference')
+        dae_model.build_graph()
 
     with tf.Session() as sess:
         # now restore the trained variables
@@ -48,38 +50,13 @@ def main(config):
             input_, _ = batch.get_padded_data(pad_target=False)
             seeds.append(input_)
 
-            # here we are requesting the final state as we later want to supply this back into the RNN
-            # this is why the model should have a member `self.final_state`
-            fetch = [rnn_model.final_state, rnn_model.update_internal_rnn_state]
-            feed_dict = {placeholders['input_pl']: input_,
-                         placeholders['seq_lengths_pl']: batch.seq_lengths}
 
-            [state, _] = sess.run(fetch, feed_dict)
-
-            # now get the prediction by predicting one pose at a time and feeding this pose back into the model to
-            # get the prediction for the subsequent time step
-            next_pose = input_[:, -1:]
             predicted_poses = []
-            for f in range(config['prediction_length']):
-                # TODO evaluate your model here frame-by-frame
-                # To do so you should
-                #   1) feed the previous final state of the model as the next initial state
-                #   2) feed the previous output pose of the model as the new input (single frame only)
-                #   3) fetch both the final state and prediction of the RNN model that are then re-used in the next
-                #      iteration
 
-                # fetch = [state]
-                # feed_dict = {placeholders['input_pl']: next_pose,
-                #          placeholders['seq_lengths_pl']: batch.seq_lengths}
-
-                fetch = [rnn_model.prediction, rnn_model.update_internal_rnn_state]
-                feed_dict = {placeholders['input_pl']: next_pose,
-                             placeholders['seq_lengths_pl']: batch.batch_size * [1]}
-
-                [predicted_pose, _] = sess.run(fetch, feed_dict)
-
-                predicted_poses.append(np.copy(predicted_pose))
-                next_pose = predicted_pose
+            fetch = [dae_model.prediction]
+            feed_dict = dae_model.get_feed_dict(batch)
+            predicted_pose = sess.run(fetch, feed_dict)
+            predicted_poses.append(np.copy(predicted_pose[0]))
 
             predicted_poses = np.concatenate(predicted_poses, axis=1)
 
@@ -96,15 +73,11 @@ def main(config):
     # the predictions are now stored in test_predictions, you can do with them what you want
     # for example, visualize a random entry
     idx = np.random.randint(0, len(seeds))
+    idy = np.random.randint(0, 50)
     seed_and_prediction = np.concatenate([seeds[idx], predictions[idx]], axis=0)
-    visualize_joint_angles([seed_and_prediction], change_color_after_frame=seeds[0].shape[0])
 
-    # or, write out the test results to a csv file that you can upload to Kaggle
-    model_name = config['model_dir'].split('/')[-1]
-    model_name = config['model_dir'].split('/')[-2] if model_name == '' else model_name
-    output_file = os.path.join(config['model_dir'], 'submit_to_kaggle_{}_{}.csv'.format(config['prediction_length'], model_name))
-    export_to_csv(predictions, ids, output_file)
-
+    #visualize_joint_angles2([seed_and_prediction])
+    visualize_multiple_poses([seeds[idx]],[predictions[idx]])
 
 if __name__ == '__main__':
     main(test_config)

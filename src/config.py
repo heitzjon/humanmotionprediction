@@ -22,7 +22,7 @@ train_config['save_checkpoints_every_epoch'] = 1  # after how many epochs the tr
 train_config['n_keep_checkpoints'] = 3  # how many saved checkpoints to keep
 
 # config for auto-encoder
-train_config['first_layer_dropout_ae'] = 0.5
+train_config['first_layer_dropout_ae'] = 0.05
 train_config['dense_layer_units_ae'] = 500
 train_config['l2_regularization_ae'] = 0.001
 train_config['gaussian_noise_standard_deviation_ae'] = 0.2
@@ -36,6 +36,6 @@ train_config['learning_rate_decay_rate'] = 0.95
 # some additional configuration parameters required when the configured model is used at inference time
 test_config = train_config.copy()
 test_config['max_seq_length'] = 50  # want to use entire sequence during test, which is fixed to 50, don't change this
-test_config['model_dir'] = '../trained_models/dummy_model_1528445034/'  # path to the model that you want to evaluate
+test_config['model_dir'] = '../trained_models/dae_1528550163/'#dummy_model_1528445034/'  # path to the model that you want to evaluate
 test_config['checkpoint_id'] = None  # if None, the last checkpoint will be used
 test_config['prediction_length'] = 25  # how many frames to predict into the future (assignment requires 25 frames, but you can experiment with more if you'd like)
