@@ -31,6 +31,7 @@ class DAEModel(object):
         self.first_layer_dropout_rate = self.config['first_layer_dropout_ae']
         self.dense_layer_units = self.config['dense_layer_units_ae']
         self.l2_regularization = self.config['l2_regularization_ae']
+        self.noise_std = self.config['gaussian_noise_standard_deviation_ae']
 
         self.summary_collection = 'training_summaries' if mode == 'training' else 'validation_summaries'
 
@@ -49,9 +50,11 @@ class DAEModel(object):
             self.input = tf.placeholder(tf.float32, (self.batch_size, None, self.input_dim), name='input')
             self.target = tf.placeholder(tf.float32, (self.batch_size, None, self.output_dim), name='target')
 
-            dropout_input = tf.layers.dropout(inputs=self.input, rate=self.first_layer_dropout_rate, training=self.is_training)
+            noisy_layer = gaussian_noise_layer(self.input, self.noise_std)
 
-            encoder_dense1 = tf.layers.dense(inputs=dropout_input, units=self.dense_layer_units,
+            dropout_layer = tf.layers.dropout(inputs=noisy_layer, rate=self.first_layer_dropout_rate, training=self.is_training)
+
+            encoder_dense1 = tf.layers.dense(inputs=dropout_layer, units=self.dense_layer_units,
                                              activation=tf.nn.relu, kernel_regularizer=tf.contrib.layers.l2_regularizer(self.l2_regularization))
             encoder_dense2 = tf.layers.dense(inputs=encoder_dense1, units=self.dense_layer_units,
                                              activation=tf.nn.relu, kernel_regularizer=tf.contrib.layers.l2_regularizer(self.l2_regularization))

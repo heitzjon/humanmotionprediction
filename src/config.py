@@ -16,7 +16,7 @@ train_config['init_scale_weights'] = 0.05
 train_config['max_grad_norm'] = 5
 
 
-train_config['n_epochs'] = 100  #20
+train_config['n_epochs'] = 100
 
 train_config['save_checkpoints_every_epoch'] = 1  # after how many epochs the trained model should be saved
 train_config['n_keep_checkpoints'] = 3  # how many saved checkpoints to keep
@@ -25,6 +25,7 @@ train_config['n_keep_checkpoints'] = 3  # how many saved checkpoints to keep
 train_config['first_layer_dropout_ae'] = 0.5
 train_config['dense_layer_units_ae'] = 500
 train_config['l2_regularization_ae'] = 0.001
+train_config['gaussian_noise_standard_deviation_ae'] = 0.2
 
 train_config['learning_rate'] = 1.0
 # some code to anneal the learning rate, this is implemented for you, you can just choose it here
