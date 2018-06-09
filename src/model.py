@@ -113,22 +113,6 @@ class RNNModel(object):
                 # `self.target`. Hint 1: you will want to use the provided `self.mask` to make sure that padded values
                 # do not influence the loss. Hint 2: L2 loss is probably a good starting point ...
 
-                # Note Ursin: for the L2 loss function the mask should not be necessary to check
-
-
-                # self.loss = tf.losses.mean_squared_error(
-                #     labels=self.target,
-                #     predictions=self.prediction,
-                #     weights=1.0,
-                #     scope=None,
-                #     loss_collection=tf.GraphKeys.LOSSES,
-                #     reduction=Reduction.SUM_BY_NONZERO_WEIGHTS
-                # )
-                #
-                # #self.weighted_loss = self.loss * tf.reshape(self.mask, [-1])
-                #
-                # tf.summary.scalar('xloss', self.loss, collections=[self.summary_collection])
-
             with tf.name_scope('loss'):
 
                 self.loss = tf.losses.mean_squared_error(
@@ -140,6 +124,38 @@ class RNNModel(object):
                     reduction=Reduction.SUM_BY_NONZERO_WEIGHTS
                 )
                 tf.summary.scalar('loss', self.loss, collections=[self.summary_collection])
+
+                self.loss_unreduced = tf.losses.mean_squared_error(
+                    labels=self.target,
+                    predictions=self.prediction,
+                    weights=self.mask[..., None] * np.ones(self.input_dim),
+                    scope=None,
+                    loss_collection=tf.GraphKeys.LOSSES,
+                    reduction=Reduction.NONE
+                )
+                tf.summary.scalar('loss', self.loss, collections=[self.summary_collection])
+
+            with tf.name_scope('loss_unmasked'):
+
+                self.loss_unmasked = tf.losses.mean_squared_error(
+                    labels=self.target,
+                    predictions=self.prediction,
+                    weights=1.0,
+                    scope=None,
+                    loss_collection=tf.GraphKeys.LOSSES,
+                    reduction=Reduction.SUM_BY_NONZERO_WEIGHTS
+                )
+
+                self.loss_unmasked_unreduced = tf.losses.mean_squared_error(
+                    labels=self.target,
+                    predictions=self.prediction,
+                    weights=1.0,
+                    scope=None,
+                    loss_collection=tf.GraphKeys.LOSSES,
+                    reduction=Reduction.NONE
+                )
+
+                tf.summary.scalar('loss_unmasked', self.loss_unmasked, collections=[self.summary_collection])
 
 
     def count_parameters(self):

@@ -155,14 +155,25 @@ def main(config):
                 # we want to train, so must request at least the train_op
                 fetches = {'summaries': summaries_training,
                            'loss': rnn_model.loss,
+                           'loss_unreduced': rnn_model.loss_unreduced,
+                           'loss_unmasked': rnn_model.loss_unmasked,
+                           'loss_unmasked_unreduced': rnn_model.loss_unmasked_unreduced,
                            'train_op': train_op}
 
                 # get the feed dict for the current batch
                 feed_dict = rnn_model.get_feed_dict(batch)
 
                 # feed data into the model and run optimization
-                xyz = batch.mask
                 training_out, _ = sess.run([fetches, rnn_model.update_internal_rnn_state], feed_dict)
+                mask = batch.mask
+                loss = training_out['loss']
+                loss_unreduced = training_out['loss_unreduced']
+                loss_unmasked = training_out['loss_unmasked']
+                loss_unmasked_unreduced = training_out['loss_unmasked_unreduced']
+
+                # display this to calculate loss manually:
+                np.sum(loss_unmasked_unreduced) / loss_unmasked_unreduced.size
+                np.sum(loss_unreduced) / np.count_nonzero(loss_unreduced)
 
                 # write logs
                 train_summary_writer.add_summary(training_out['summaries'], global_step=step)
