@@ -41,15 +41,16 @@ def train_rnn(config, data_train, data_valid):
             raise ValueError('learning rate type "{}" unknown.'.format(config['learning_rate_type']))
 
         # choose the optimizer you desire here and define `train_op. The loss should be accessible through rnn_model.loss
-        optimizer = tf.train.GradientDescentOptimizer(lr)
+        # optimizer = tf.train.GradientDescentOptimizer(lr)
+        #
+        # params = tf.trainable_variables()
+        # grads, _ = tf.clip_by_global_norm(tf.gradients(rnn_model.loss, params), config['max_grad_norm'])
+        # train_op = optimizer.apply_gradients(
+        #     zip(grads, params),
+        #     global_step=tf.train.get_or_create_global_step())
 
-        params = tf.trainable_variables()
-        grads, _ = tf.clip_by_global_norm(tf.gradients(rnn_model.loss, params), config['max_grad_norm'])
-        train_op = optimizer.apply_gradients(
-            zip(grads, params),
-            global_step=tf.train.get_or_create_global_step())
-
-        # train_op = optimizer.minimize(loss=rnn_model.loss, global_step=tf.train.get_global_step())
+        optimizer = tf.train.RMSPropOptimizer(lr)
+        train_op = optimizer.minimize(loss=rnn_model.loss, global_step=tf.train.get_global_step())
 
     # create a graph for validation
     with tf.name_scope('validation'):
