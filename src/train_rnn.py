@@ -49,7 +49,7 @@ def train_rnn(config, data_train, data_valid):
         #     zip(grads, params),
         #     global_step=tf.train.get_or_create_global_step())
 
-        optimizer = tf.train.RMSPropOptimizer(lr)
+        optimizer = tf.train.AdamOptimizer(lr, beta1=0.9, beta2=0.999, epsilon=1e-08)
         train_op = optimizer.minimize(loss=rnn_model.loss, global_step=tf.train.get_global_step())
 
     # create a graph for validation
