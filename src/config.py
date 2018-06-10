@@ -36,7 +36,9 @@ train_config['learning_rate_decay_rate'] = 0.95
 # some additional configuration parameters required when the configured model is used at inference time
 test_config = train_config.copy()
 test_config['max_seq_length'] = 50  # want to use entire sequence during test, which is fixed to 50, don't change this
-test_config['model_dir_dae'] = '../trained_models/dae_dummy_1528629828/'
 test_config['model_dir_rnn'] = '../trained_models/combined_rnnonly_500_1528580489/'
 test_config['checkpoint_id'] = None  # if None, the last checkpoint will be used
 test_config['prediction_length'] = 25  # how many frames to predict into the future (assignment requires 25 frames, but you can experiment with more if you'd like)
+
+test_config['model_dir_dae'] = '../trained_models/dae_dummy_1528629828/'
+test_config['use_dae'] = False

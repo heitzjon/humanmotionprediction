@@ -209,8 +209,6 @@ class RNNModel(object):
             # Reshape logits to be a 3-D tensor for the loss function
             self.prediction = tf.reshape(output_transformed, [self.batch_size, self.max_seq_length, self.output_dim])
 
-            # not sure if we really need this two variables, but the comments says so.
-            self.final_state = new_state
             self.initial_state = states
 
     def make_cell(self):
