@@ -124,7 +124,7 @@ def visualize_joint_angles(joint_angles, change_color_after_frame=None):
     :param change_color_after_frame: after this frame id, the color of the plot is changed
     """
     positions = [forward_kinematics(ja) for ja in joint_angles]
-    visualize_positions(positions, change_color_after_frame)
+    visualize_positions(positions, change_color_after_frame=change_color_after_frame)
 
 
 def visualize_multiple_poses(poses_1, poses_2=None, poses_3=None, change_color_after_frame=None, action_label=None):

@@ -2,7 +2,7 @@
 train_config = {}
 train_config['data_dir'] = '../data'  # where the data downloaded from Kaggle is stored, i.e. the *.npz files
 train_config['output_dir'] = '../trained_models/'  # where you want to store the checkpoints of different training runs
-train_config['name'] = 'dae'
+train_config['name'] = 'dummy'
 train_config['batch_size'] = 20  # can not be zero!
 train_config['max_seq_length'] = 50  # specify for how many time steps you want to unroll the RNN
 
@@ -36,6 +36,7 @@ train_config['learning_rate_decay_rate'] = 0.95
 # some additional configuration parameters required when the configured model is used at inference time
 test_config = train_config.copy()
 test_config['max_seq_length'] = 50  # want to use entire sequence during test, which is fixed to 50, don't change this
-test_config['model_dir'] = '../trained_models/dae_1528623094/'#'../trained_models_cluster/combined_dae_500_1528580599/'#dummy_model_1528445034/'  # path to the model that you want to evaluate
+test_config['model_dir_dae'] = '../trained_models/dae_dummy_1528629828/'
+test_config['model_dir_rnn'] = '../trained_models/combined_rnnonly_500_1528580489/'
 test_config['checkpoint_id'] = None  # if None, the last checkpoint will be used
 test_config['prediction_length'] = 25  # how many frames to predict into the future (assignment requires 25 frames, but you can experiment with more if you'd like)

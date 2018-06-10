@@ -33,9 +33,9 @@ def main(config):
         saver = tf.train.Saver()
         ckpt_id = config['checkpoint_id']
         if ckpt_id is None:
-            ckpt_path = tf.train.latest_checkpoint(config['model_dir'])
+            ckpt_path = tf.train.latest_checkpoint(config['model_dir_dae'])
         else:
-            ckpt_path = os.path.join(os.path.abspath(config['model_dir']), 'model-{}'.format(ckpt_id))
+            ckpt_path = os.path.join(os.path.abspath(config['model_dir_dae']), 'model-{}'.format(ckpt_id))
         print('Evaluating ' + ckpt_path)
         saver.restore(sess, ckpt_path)
 
