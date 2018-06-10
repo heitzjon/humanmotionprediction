@@ -42,6 +42,7 @@ def main(config):
         # loop through all the test samples
         seeds = []
         predictions = []
+        dropouts = []
         ids = []
         for batch in data_test.all_batches():
 
@@ -52,22 +53,27 @@ def main(config):
 
 
             predicted_poses = []
-
-            fetch = [dae_model.prediction]
+            dropout_poses = []
+            fetch = [dae_model.prediction, dae_model.dropout_pose] #, dae_model.dropout_pose , dae_model.fig2
             feed_dict = dae_model.get_feed_dict(batch)
-            predicted_pose = sess.run(fetch, feed_dict)
-            predicted_poses.append(np.copy(predicted_pose[0]))
+            [predicted_pose, dropout_pose] = sess.run(fetch, feed_dict) #, dropout_pose
+            predicted_poses.append(np.copy(predicted_pose))
+            dropout_poses.append(np.copy(dropout_pose))
 
             predicted_poses = np.concatenate(predicted_poses, axis=1)
+            dropout_poses = np.concatenate(dropout_poses, axis=1)
 
             predictions.append(predicted_poses)
+            dropouts.append(dropout_poses)
             ids.extend(batch.ids)
 
         seeds = np.concatenate(seeds, axis=0)
         predictions = np.concatenate(predictions, axis=0)
+        dropouts = np.concatenate(dropouts, axis=0)
 
     seeds = seeds[0:len(data_test.input_)]
     predictions = predictions[0:len(data_test.input_)]
+    dropouts = dropouts[0:len(data_test.input_)]
     ids = ids[0:len(data_test.input_)]
 
     # the predictions are now stored in test_predictions, you can do with them what you want
@@ -77,7 +83,8 @@ def main(config):
     seed_and_prediction = np.concatenate([seeds[idx], predictions[idx]], axis=0)
 
     #visualize_joint_angles2([seed_and_prediction])
-    visualize_multiple_poses([seeds[idx]],[predictions[idx]])
+    #visualize_multiple_poses([seeds[idx]],[predictions[idx]])
+    visualize_multiple_poses([seeds[idx]],[predictions[idx]]) #[dropouts[idx]],
 
 if __name__ == '__main__':
     main(test_config)

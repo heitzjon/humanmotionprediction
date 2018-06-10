@@ -13,7 +13,7 @@ import numpy as np
 from utils import forward_kinematics, Skeleton
 
 
-def visualize_positions(positions, positions2=None, change_color_after_frame=None, action_label='not provided'):
+def visualize_positions(positions, positions2=None, positions3=None,change_color_after_frame=None, action_label='not provided'):
     """
     Visualize motion given 3D positions. Can visualize several motions side by side. If the sequence lengths don't
     match, all animations are displayed until the shortest sequence length.
@@ -26,6 +26,9 @@ def visualize_positions(positions, positions2=None, change_color_after_frame=Non
     if not positions2 is None:
         pos2 = [np.reshape(p, [-1, n_joints, 3]) for p in positions2]
         pos = np.concatenate([pos, pos2], axis=0)
+    if not positions3 is None:
+        pos3 = [np.reshape(p, [-1, n_joints, 3]) for p in positions3]
+        pos = np.concatenate([pos, pos3], axis=0)
     parents = Skeleton.parents
 
     # create figure with as many subplots as we have skeletons
@@ -108,7 +111,7 @@ def visualize_positions(positions, positions2=None, change_color_after_frame=Non
     # create the animation object, for animation to work reference to this object must be kept
     line_ani = animation.FuncAnimation(fig, update_frame, seq_length,
                                        fargs=(pos, all_lines, parents, colors + [colors[0]]),
-                                       interval=int(round(1000.0 / 25.0)), blit=False)
+                                       interval=int(round(1000.0 / 25.0)), blit=False)   #int(round(1000.0 / 25.0))
 
 
     plt.show()
@@ -124,7 +127,7 @@ def visualize_joint_angles(joint_angles, change_color_after_frame=None):
     visualize_positions(positions, change_color_after_frame)
 
 
-def visualize_multiple_poses(poses_true, poses_pred, change_color_after_frame=None, action_label=None):
+def visualize_multiple_poses(poses_1, poses_2=None, poses_3=None, change_color_after_frame=None, action_label=None):
     """
     Visualize motion given joint angles in exponential map format.
     :param positions: list of np arrays in shape (seq_length, n_joints*3) giving the 3D positions per joint and frame.
@@ -133,9 +136,14 @@ def visualize_multiple_poses(poses_true, poses_pred, change_color_after_frame=No
 
     #positions = [forward_kinematics(ja) for ja in joint_angles]
 
-    positions_true = [forward_kinematics(ja) for ja in poses_true]
-    positions_pred = [forward_kinematics(ja) for ja in poses_pred]
-    visualize_positions(positions_true, positions_pred,change_color_after_frame, action_label)
+    positions_1 = [forward_kinematics(ja) for ja in poses_1]
+    if not poses_2 is None:
+        positions_2 = [forward_kinematics(ja) for ja in poses_2]
+    else: positions_2=None
+    if not poses_3 is None:
+        positions_3 = [forward_kinematics(ja) for ja in poses_3]
+    else: positions_3=None
+    visualize_positions(positions_1, positions_2, positions_3,change_color_after_frame, action_label)
 
 
 if __name__ == '__main__':

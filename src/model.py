@@ -50,22 +50,30 @@ class DAEModel(object):
             self.input = tf.placeholder(tf.float32, (self.batch_size, None, self.input_dim), name='input')
             self.target = tf.placeholder(tf.float32, (self.batch_size, None, self.output_dim), name='target')
 
-            noisy_layer = gaussian_noise_layer(self.input, self.noise_std)
+            #noisy_layer = gaussian_noise_layer(self.dropout_layer, self.noise_std)
+            #dropout_layer = tf.layers.dropout(inputs=self.input, rate=self.first_layer_dropout_rate, training=self.is_training)
+            #encoder_dense1 = tf.layers.dense(inputs=noisy_layer, units=self.dense_layer_units,
+            figure = tf.reshape(self.input,[self.batch_size,tf.shape(self.input)[1],25,3])
+            dropout_layer = tf.layers.dropout(inputs=figure, rate=self.first_layer_dropout_rate, noise_shape=[self.batch_size,tf.shape(self.input)[1],25,1],training=self.is_training) #True) #self.is_training)
+            reshaped_dropout = tf.reshape(dropout_layer,[self.batch_size,tf.shape(self.input)[1],75])
+            noisy_layer = gaussian_noise_layer(reshaped_dropout, self.noise_std)
+            noisy_layer = reshaped_dropout
+            #dropout_layer = tf.layers.dropout(inputs=self.input, rate=self.first_layer_dropout_rate,training=True)  # self.is_training)
+            #noisy_layer = gaussian_noise_layer(dropout_layer, self.noise_std)
 
-            dropout_layer = tf.layers.dropout(inputs=noisy_layer, rate=self.first_layer_dropout_rate, training=self.is_training)
-
-            encoder_dense1 = tf.layers.dense(inputs=dropout_layer, units=self.dense_layer_units,
+            encoder_dense1 = tf.layers.dense(inputs=noisy_layer, units=self.dense_layer_units,
                                              activation=tf.nn.relu, kernel_regularizer=tf.contrib.layers.l2_regularizer(self.l2_regularization))
-            encoder_dense2 = tf.layers.dense(inputs=encoder_dense1, units=self.dense_layer_units,
-                                             activation=tf.nn.relu, kernel_regularizer=tf.contrib.layers.l2_regularizer(self.l2_regularization))
-
-            decoder_dense1 = tf.layers.dense(inputs=encoder_dense2, units=self.dense_layer_units, activation=tf.nn.relu,
-                                             kernel_regularizer=tf.contrib.layers.l2_regularizer(self.l2_regularization))
-            decoder_dense2 = tf.layers.dense(inputs=decoder_dense1, units=self.dense_layer_units, activation=tf.nn.relu,
-                                             kernel_regularizer=tf.contrib.layers.l2_regularizer(self.l2_regularization))
+            # encoder_dense2 = tf.layers.dense(inputs=encoder_dense1, units=self.dense_layer_units,
+            #                                  activation=tf.nn.relu, kernel_regularizer=tf.contrib.layers.l2_regularizer(self.l2_regularization))
+            #
+            # decoder_dense1 = tf.layers.dense(inputs=encoder_dense2, units=self.dense_layer_units, activation=tf.nn.relu,
+            #                                  kernel_regularizer=tf.contrib.layers.l2_regularizer(self.l2_regularization))
+            decoder_dense2 = tf.layers.dense(inputs=encoder_dense1, units=self.dense_layer_units, activation=tf.nn.relu,
+                                              kernel_regularizer=tf.contrib.layers.l2_regularizer(self.l2_regularization))
 
             self.prediction = tf.layers.dense(inputs=decoder_dense2, units=self.output_dim, activation=tf.nn.tanh,
                                               kernel_regularizer=tf.contrib.layers.l2_regularizer(self.l2_regularization))
+            self.dropout_pose = reshaped_dropout
 
     def build_loss(self):
         """
@@ -82,8 +90,6 @@ class DAEModel(object):
                     loss_collection=tf.GraphKeys.LOSSES,
                     reduction=Reduction.SUM_OVER_BATCH_SIZE
                 ) + tf.losses.get_regularization_loss() # important! add the regularization-loss
-
-                # self.loss = tf.sqrt(tf.reduce_mean(tf.square(self.target - self.prediction)))
 
                 tf.summary.scalar('loss', self.loss, collections=[self.summary_collection])
 
