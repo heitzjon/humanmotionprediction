@@ -288,6 +288,27 @@ class RNNModel(object):
         return feed_dict
 
 
+def get_model_and_placeholders(config):
+    # create placeholders that we need to feed the required data into the model
+    # None means that the dimension is variable, which we want for the batch size and the sequence length
+
+    # input_dim is normally 75
+    input_dim = output_dim = config['input_dim']
+
+    input_pl = tf.placeholder(tf.float32, shape=[None, None, input_dim], name='input_pl')
+    target_pl = tf.placeholder(tf.float32, shape=[None, None, output_dim], name='input_pl')
+    seq_lengths_pl = tf.placeholder(tf.int32, shape=[None], name='seq_lengths_pl')
+    mask_pl = tf.placeholder(tf.float32, shape=[None, None], name='mask_pl')
+
+    placeholders = {'input_pl': input_pl,
+                    'target_pl': target_pl,
+                    'seq_lengths_pl': seq_lengths_pl,
+                    'mask_pl': mask_pl}
+
+    rnn_model_class = RNNModel
+    return rnn_model_class, placeholders
+
+
 def update_rnn_state_variables(state_variables, new_states):
     # Add an operation to update the train states with the last state tensors
     update_ops = []
