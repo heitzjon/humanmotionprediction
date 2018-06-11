@@ -152,6 +152,8 @@ class RNNModel(object):
         self.hidden_units = config['hidden_units']
         self.num_layers = config['num_of_layers']
         self.init_scale_weights = config['init_scale_weights']
+        self.lambda_l2_regularization = config['lambda_l2_regularization']
+
         self.summary_collection = 'training_summaries' if mode == 'training' else 'validation_summaries'
 
     def build_graph(self):
@@ -247,8 +249,13 @@ class RNNModel(object):
                 # tf.summary.scalar('xloss', self.loss, collections=[self.summary_collection])
 
             with tf.name_scope('loss'):
+                l2_regularization = self.lambda_l2_regularization * sum(
+                    tf.nn.l2_loss(tf_var)
+                    for tf_var in tf.trainable_variables()
+                    if not ("noreg" in tf_var.name or "Bias" in tf_var.name)
+                )
 
-                self.loss = tf.losses.mean_squared_error(
+                self.loss = l2_regularization + tf.losses.mean_squared_error(
                     labels=self.target,
                     predictions=self.prediction,
                     weights=self.mask[..., None] * np.ones(self.input_dim),

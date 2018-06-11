@@ -12,6 +12,7 @@ train_config['hidden_units'] = 1500 #650 #1500
 
 # see https://stackoverflow.com/questions/45507315/what-exactly-does-tf-contrib-rnn-dropoutwrapper-in-tensorflow-do-three-cit
 train_config['dropout_on_lstm_cell'] = 0.5
+train_config['lambda_l2_regularization'] = 0.0000001
 train_config['init_scale_weights'] = 0.05
 train_config['max_grad_norm'] = 5
 
