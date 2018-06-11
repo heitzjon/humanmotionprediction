@@ -29,10 +29,10 @@ train_config['dense_layer_units_ae'] = 500
 train_config['l2_regularization_ae'] = 0.001
 train_config['gaussian_noise_standard_deviation_ae'] = 0.2
 
-train_config['learning_rate'] = 0.0005
+train_config['learning_rate'] = 0.0001
 # some code to anneal the learning rate, this is implemented for you, you can just choose it here
-train_config['learning_rate_type'] = 'exponential'  # ['fixed', 'exponential', 'linear']
-train_config['learning_rate_decay_steps'] = 500
+train_config['learning_rate_type'] = 'linear'  # ['fixed', 'exponential', 'linear']
+train_config['learning_rate_decay_steps'] = 1000
 train_config['learning_rate_decay_rate'] = 0.99
 
 # some additional configuration parameters required when the configured model is used at inference time
