@@ -8,6 +8,7 @@ class DAEModel(object):
     Creates training and validation computational graphs.
     Note that tf.variable_scope enables parameter sharing so that both graphs are identical.
     """
+
     def __init__(self, config, mode):
         """
         Basic setup.
@@ -30,8 +31,8 @@ class DAEModel(object):
 
         self.first_layer_dropout_rate = self.config['first_layer_dropout_ae']
         self.dense_layer_units = self.config['dense_layer_units_ae']
-        self.l2_regularization = self.config['l2_regularization_ae']
-        self.noise_std = self.config['gaussian_noise_standard_deviation_ae']
+        # self.l2_regularization = self.config['l2_regularization_ae']
+        # self.noise_std = self.config['gaussian_noise_standard_deviation_ae']
 
         self.summary_collection = 'training_summaries' if mode == 'training' else 'validation_summaries'
 
@@ -46,34 +47,43 @@ class DAEModel(object):
         """
 
         with tf.variable_scope('dae_model', reuse=self.reuse):
-
             self.input = tf.placeholder(tf.float32, (self.batch_size, None, self.input_dim), name='input')
             self.target = tf.placeholder(tf.float32, (self.batch_size, None, self.output_dim), name='target')
 
-            #noisy_layer = gaussian_noise_layer(self.dropout_layer, self.noise_std)
-            #dropout_layer = tf.layers.dropout(inputs=self.input, rate=self.first_layer_dropout_rate, training=self.is_training)
-            #encoder_dense1 = tf.layers.dense(inputs=noisy_layer, units=self.dense_layer_units,
-            figure = tf.reshape(self.input,[self.batch_size,tf.shape(self.input)[1],25,3])
-            dropout_layer = tf.layers.dropout(inputs=figure, rate=self.first_layer_dropout_rate, noise_shape=[self.batch_size,tf.shape(self.input)[1],25,1],training=self.is_training) #True) #self.is_training)
-            reshaped_dropout = tf.reshape(dropout_layer,[self.batch_size,tf.shape(self.input)[1],75])
-            noisy_layer = gaussian_noise_layer(reshaped_dropout, self.noise_std)
-            noisy_layer = reshaped_dropout
-            #dropout_layer = tf.layers.dropout(inputs=self.input, rate=self.first_layer_dropout_rate,training=True)  # self.is_training)
-            #noisy_layer = gaussian_noise_layer(dropout_layer, self.noise_std)
+            reshaped_figure = tf.reshape(self.input, [self.batch_size, tf.shape(self.input)[1], 25, 3])
 
-            encoder_dense1 = tf.layers.dense(inputs=noisy_layer, units=self.dense_layer_units,
-                                             activation=tf.nn.relu, kernel_regularizer=tf.contrib.layers.l2_regularizer(self.l2_regularization))
-            # encoder_dense2 = tf.layers.dense(inputs=encoder_dense1, units=self.dense_layer_units,
-            #                                  activation=tf.nn.relu, kernel_regularizer=tf.contrib.layers.l2_regularizer(self.l2_regularization))
-            #
-            # decoder_dense1 = tf.layers.dense(inputs=encoder_dense2, units=self.dense_layer_units, activation=tf.nn.relu,
-            #                                  kernel_regularizer=tf.contrib.layers.l2_regularizer(self.l2_regularization))
-            decoder_dense2 = tf.layers.dense(inputs=encoder_dense1, units=self.dense_layer_units, activation=tf.nn.relu,
-                                              kernel_regularizer=tf.contrib.layers.l2_regularizer(self.l2_regularization))
+            dropout_input = tf.layers.dropout(inputs=reshaped_figure,
+                                              rate=self.first_layer_dropout_rate,
+                                              noise_shape=[self.batch_size, tf.shape(self.input)[1], 25, 1],
+                                              training=self.is_training)
 
-            self.prediction = tf.layers.dense(inputs=decoder_dense2, units=self.output_dim, activation=tf.nn.tanh,
-                                              kernel_regularizer=tf.contrib.layers.l2_regularizer(self.l2_regularization))
-            self.dropout_pose = reshaped_dropout
+            self.reshaped_dropout_input = tf.reshape(dropout_input, [self.batch_size, tf.shape(self.input)[1], 75])
+
+            dense_layer1 = tf.contrib.layers.fully_connected(inputs=self.reshaped_dropout_input,
+                                                             num_outputs=self.dense_layer_units,
+                                                             activation_fn=tf.nn.relu,
+                                                             weights_regularizer=max_norm_regularizer(3))
+
+            dropout_layer1 = tf.layers.dropout(inputs=dense_layer1, rate=0.001)
+
+            dense_layer2 = tf.contrib.layers.fully_connected(inputs=dropout_layer1,
+                                                             num_outputs=self.dense_layer_units,
+                                                             activation_fn=tf.nn.relu,
+                                                             weights_regularizer=max_norm_regularizer(3))
+
+            dropout_layer2 = tf.layers.dropout(inputs=dense_layer2, rate=0.001)
+
+            dense_layer3 = tf.contrib.layers.fully_connected(inputs=dropout_layer2,
+                                                             num_outputs=self.dense_layer_units,
+                                                             activation_fn=tf.nn.relu,
+                                                             weights_regularizer=max_norm_regularizer(3))
+
+            dropout_layer3 = tf.layers.dropout(inputs=dense_layer3, rate=0.001)
+
+            self.prediction = tf.contrib.layers.fully_connected(inputs=dropout_layer3,
+                                                                num_outputs=self.output_dim,
+                                                                activation_fn=tf.nn.relu,
+                                                                weights_regularizer=max_norm_regularizer(3))
 
     def build_loss(self):
         """
@@ -82,14 +92,13 @@ class DAEModel(object):
         # only need loss if we are not in inference mode
         if self.mode is not 'inference':
             with tf.name_scope('loss'):
-
                 self.loss = tf.losses.mean_squared_error(
                     labels=self.target,
                     predictions=self.prediction,
                     scope=None,
                     loss_collection=tf.GraphKeys.LOSSES,
                     reduction=Reduction.SUM_OVER_BATCH_SIZE
-                ) + tf.losses.get_regularization_loss() # important! add the regularization-loss
+                )  # no l2 loss, see max_norm_regularizer for more information
 
                 tf.summary.scalar('loss', self.loss, collections=[self.summary_collection])
 
@@ -127,6 +136,7 @@ class RNNModel(object):
     Creates training and validation computational graphs.
     Note that tf.variable_scope enables parameter sharing so that both graphs are identical.
     """
+
     def __init__(self, config, placeholders, mode):
         """
         Basic setup.
@@ -183,7 +193,6 @@ class RNNModel(object):
         #      - `self.prediction`: the actual output of the model in shape `(batch_size, self.max_seq_length, output_dim)`
 
         with tf.variable_scope('rnn_model', reuse=self.reuse):
-
             batch_size = self.config['batch_size']
 
             cell = tf.contrib.rnn.MultiRNNCell([self.make_cell() for _ in range(self.num_layers)], state_is_tuple=True)
@@ -201,8 +210,13 @@ class RNNModel(object):
             output = tf.reshape(output, [-1, self.hidden_units])
 
             # we need to have a prediction with output size 20 * 35 * 75, so we multiply with a weight matrix of 650 * 75
-            weight = tf.get_variable(name='output_weight', initializer=tf.random_uniform([self.hidden_units, self.output_dim], -1 * self.init_scale_weights, self.init_scale_weights))
-            bias = tf.get_variable(name='output_bias', initializer=tf.random_uniform([self.output_dim], -1 * self.init_scale_weights, self.init_scale_weights))
+            weight = tf.get_variable(name='output_weight',
+                                     initializer=tf.random_uniform([self.hidden_units, self.output_dim],
+                                                                   -1 * self.init_scale_weights,
+                                                                   self.init_scale_weights))
+            bias = tf.get_variable(name='output_bias',
+                                   initializer=tf.random_uniform([self.output_dim], -1 * self.init_scale_weights,
+                                                                 self.init_scale_weights))
 
             output_transformed = tf.nn.xw_plus_b(output, weight, bias)
 
@@ -225,29 +239,27 @@ class RNNModel(object):
         """
         # only need loss if we are not in inference mode
         if self.mode is not 'inference':
-            #with tf.name_scope('xloss'):
-                # You can access the outputs of the model via `self.prediction` and the corresponding targets via
-                # `self.target`. Hint 1: you will want to use the provided `self.mask` to make sure that padded values
-                # do not influence the loss. Hint 2: L2 loss is probably a good starting point ...
+            # with tf.name_scope('xloss'):
+            # You can access the outputs of the model via `self.prediction` and the corresponding targets via
+            # `self.target`. Hint 1: you will want to use the provided `self.mask` to make sure that padded values
+            # do not influence the loss. Hint 2: L2 loss is probably a good starting point ...
 
-                # Note Ursin: for the L2 loss function the mask should not be necessary to check
+            # Note Ursin: for the L2 loss function the mask should not be necessary to check
 
-
-                # self.loss = tf.losses.mean_squared_error(
-                #     labels=self.target,
-                #     predictions=self.prediction,
-                #     weights=1.0,
-                #     scope=None,
-                #     loss_collection=tf.GraphKeys.LOSSES,
-                #     reduction=Reduction.SUM_BY_NONZERO_WEIGHTS
-                # )
-                #
-                # #self.weighted_loss = self.loss * tf.reshape(self.mask, [-1])
-                #
-                # tf.summary.scalar('xloss', self.loss, collections=[self.summary_collection])
+            # self.loss = tf.losses.mean_squared_error(
+            #     labels=self.target,
+            #     predictions=self.prediction,
+            #     weights=1.0,
+            #     scope=None,
+            #     loss_collection=tf.GraphKeys.LOSSES,
+            #     reduction=Reduction.SUM_BY_NONZERO_WEIGHTS
+            # )
+            #
+            # #self.weighted_loss = self.loss * tf.reshape(self.mask, [-1])
+            #
+            # tf.summary.scalar('xloss', self.loss, collections=[self.summary_collection])
 
             with tf.name_scope('loss'):
-
                 self.loss = tf.losses.mean_squared_error(
                     labels=self.target,
                     predictions=self.prediction,
@@ -257,7 +269,6 @@ class RNNModel(object):
                     reduction=Reduction.SUM_BY_NONZERO_WEIGHTS
                 )
                 tf.summary.scalar('loss', self.loss, collections=[self.summary_collection])
-
 
     def count_parameters(self):
         """
@@ -337,3 +348,12 @@ def gaussian_noise_layer(input_layer, std):
     noise = tf.random_normal(shape=tf.shape(input_layer), mean=0.0, stddev=std, dtype=tf.float32)
     return input_layer + noise
 
+
+def max_norm_regularizer(threshold, axes=1, name="maxnorm", collection="maxnorm"):
+    def maxnorm(weights):
+        clipped = tf.clip_by_norm(weights, clip_norm=threshold, axes=axes)
+        clip_weights = tf.assign(weights, clipped, name=name)
+        tf.add_to_collection(collection, clip_weights)
+        return None  # there is no regularization loss term
+
+    return maxnorm

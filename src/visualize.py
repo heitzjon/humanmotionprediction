@@ -111,7 +111,7 @@ def visualize_positions(positions, positions2=None, positions3=None,change_color
     # create the animation object, for animation to work reference to this object must be kept
     line_ani = animation.FuncAnimation(fig, update_frame, seq_length,
                                        fargs=(pos, all_lines, parents, colors + [colors[0]]),
-                                       interval=int(round(1000.0 / 25.0)), blit=False)   #int(round(1000.0 / 25.0))
+                                       interval=int(round(1000.0 / 1.0)), blit=False)   #int(round(1000.0 / 25.0))
 
 
     plt.show()
@@ -143,7 +143,7 @@ def visualize_multiple_poses(poses_1, poses_2=None, poses_3=None, change_color_a
     if not poses_3 is None:
         positions_3 = [forward_kinematics(ja) for ja in poses_3]
     else: positions_3=None
-    visualize_positions(positions_1, positions_2, positions_3,change_color_after_frame, action_label)
+    visualize_positions(positions_1, positions_2, positions_3, change_color_after_frame, action_label)
 
 
 if __name__ == '__main__':

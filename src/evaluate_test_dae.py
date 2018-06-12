@@ -40,23 +40,23 @@ def main(config):
         saver.restore(sess, ckpt_path)
 
         # loop through all the test samples
-        seeds = []
+        ground_truth = []
         predictions = []
         dropouts = []
         ids = []
         for batch in data_test.all_batches():
 
-            # initialize the RNN with the known sequence (here 2 seconds)
-            # no need to pad the batch because in the test set all batches have the same length
             input_, _ = batch.get_padded_data(pad_target=False)
-            seeds.append(input_)
-
+            ground_truth.append(input_)
 
             predicted_poses = []
             dropout_poses = []
-            fetch = [dae_model.prediction, dae_model.dropout_pose] #, dae_model.dropout_pose , dae_model.fig2
+
+            fetch = [dae_model.prediction, dae_model.reshaped_dropout_input] #, dae_model.dropout_pose , dae_model.fig2
             feed_dict = dae_model.get_feed_dict(batch)
+
             [predicted_pose, dropout_pose] = sess.run(fetch, feed_dict) #, dropout_pose
+
             predicted_poses.append(np.copy(predicted_pose))
             dropout_poses.append(np.copy(dropout_pose))
 
@@ -67,24 +67,13 @@ def main(config):
             dropouts.append(dropout_poses)
             ids.extend(batch.ids)
 
-        seeds = np.concatenate(seeds, axis=0)
+        ground_truth = np.concatenate(ground_truth, axis=0)
         predictions = np.concatenate(predictions, axis=0)
         dropouts = np.concatenate(dropouts, axis=0)
 
-    seeds = seeds[0:len(data_test.input_)]
-    predictions = predictions[0:len(data_test.input_)]
-    dropouts = dropouts[0:len(data_test.input_)]
-    ids = ids[0:len(data_test.input_)]
+    idx = np.random.randint(0, len(ground_truth))
 
-    # the predictions are now stored in test_predictions, you can do with them what you want
-    # for example, visualize a random entry
-    idx = np.random.randint(0, len(seeds))
-    idy = np.random.randint(0, 50)
-    seed_and_prediction = np.concatenate([seeds[idx], predictions[idx]], axis=0)
-
-    #visualize_joint_angles2([seed_and_prediction])
-    #visualize_multiple_poses([seeds[idx]],[predictions[idx]])
-    visualize_multiple_poses([seeds[idx]],[predictions[idx]]) #[dropouts[idx]],
+    visualize_multiple_poses([ground_truth[idx]], [predictions[idx]], [dropouts[idx]])
 
 if __name__ == '__main__':
     main(test_config)

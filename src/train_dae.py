@@ -44,6 +44,9 @@ def train_dae(config, data_train, data_valid):
         train_op = tf.train.GradientDescentOptimizer(learning_rate).minimize(loss=dae_model.loss,
                                                                              global_step=tf.train.get_or_create_global_step())
 
+        max_norm_ops = tf.get_collection("max_norm")
+
+
     # create a graph for validation
     with tf.name_scope('validation'):
         dae_model_valid = dae_model_class(config, mode='validation')
@@ -104,7 +107,6 @@ def train_dae(config, data_train, data_valid):
                 # we want to train, so must request at least the train_op
                 fetches = {'summaries': summaries_training,
                            'loss': dae_model.loss,
-                           'prediction': dae_model.prediction,
                            'input': dae_model.input,
                            'target': dae_model.target,
                            'train_op': train_op}
@@ -114,6 +116,10 @@ def train_dae(config, data_train, data_valid):
 
                 # feed data into the model and run optimization
                 training_out = sess.run(fetches, feed_dict)
+
+                # re-scale the weights in the dense-vector.
+                # See this: https://stackoverflow.com/questions/34934303/renormalize-weight-matrix-using-tensorflow/39028553
+                sess.run(max_norm_ops)
 
                 # write logs
                 train_summary_writer.add_summary(training_out['summaries'], global_step=step)
