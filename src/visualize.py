@@ -111,7 +111,7 @@ def visualize_positions(positions, positions2=None, positions3=None,change_color
     # create the animation object, for animation to work reference to this object must be kept
     line_ani = animation.FuncAnimation(fig, update_frame, seq_length,
                                        fargs=(pos, all_lines, parents, colors + [colors[0]]),
-                                       interval=int(round(1000.0 / 1.0)), blit=False)   #int(round(1000.0 / 25.0))
+                                       interval=int(round(1000.0 / 20.0)), blit=False)   #int(round(1000.0 / 25.0))
 
 
     plt.show()

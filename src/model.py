@@ -55,7 +55,8 @@ class DAEModel(object):
             dropout_input = tf.layers.dropout(inputs=reshaped_figure,
                                               rate=self.first_layer_dropout_rate,
                                               noise_shape=[self.batch_size, tf.shape(self.input)[1], 25, 1],
-                                              training=self.is_training)
+                                              training=True)
+                                              # training=self.is_training)
 
             self.reshaped_dropout_input = tf.reshape(dropout_input, [self.batch_size, tf.shape(self.input)[1], 75])
 
@@ -82,7 +83,7 @@ class DAEModel(object):
 
             self.prediction = tf.contrib.layers.fully_connected(inputs=dropout_layer3,
                                                                 num_outputs=self.output_dim,
-                                                                activation_fn=tf.nn.relu,
+                                                                activation_fn=None,
                                                                 weights_regularizer=max_norm_regularizer(3))
 
     def build_loss(self):

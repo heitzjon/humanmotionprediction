@@ -97,6 +97,7 @@ def main(config):
     # the predictions are now stored in test_predictions, you can do with them what you want
     # for example, visualize a random entry
     idx = np.random.randint(0, len(seeds))
+    print('We display sample with idx {} '.format(idx))
     seed_and_prediction = np.concatenate([seeds[idx], predictions[idx]], axis=0)
     visualize_joint_angles([seed_and_prediction], change_color_after_frame=seeds[0].shape[0])
 

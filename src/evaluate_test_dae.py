@@ -72,6 +72,7 @@ def main(config):
         dropouts = np.concatenate(dropouts, axis=0)
 
     idx = np.random.randint(0, len(ground_truth))
+    print('We display sample with idx {} '.format(idx))
 
     visualize_multiple_poses([ground_truth[idx]], [predictions[idx]], [dropouts[idx]])
 
