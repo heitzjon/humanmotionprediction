@@ -1,16 +1,16 @@
 import os
-import tensorflow as tf
-import numpy as np
 
 import matplotlib
+import numpy as np
+import tensorflow as tf
 
-from model import DAEModel
+from model import CombinedModel
 
 matplotlib.use('TkAgg')
 
 from config import test_config
-from visualize import visualize_joint_angles, visualize_multiple_poses
-from utils import export_to_csv, restore_dae, restore_rnn
+from visualize import visualize_multiple_poses
+from utils import export_to_csv
 from train import load_data, get_model_and_placeholders
 
 
@@ -22,25 +22,22 @@ def main(config):
 
     config['input_dim'] = config['output_dim'] = data_test.input_[0].shape[-1]
 
-    rnn_model_class, placeholders = get_model_and_placeholders(config)
-    dae_model_class = DAEModel
+    _, placeholders = get_model_and_placeholders(config)
+    hybrid_model_class = CombinedModel
 
     # restore the model by first creating the computational graph
     with tf.name_scope('inference'):
-        rnn_model = rnn_model_class(config, placeholders, mode='inference')
-        rnn_model.build_graph()
-
-        dae_model = dae_model_class(config, mode='inference')
-        dae_model.build_graph()
+        hybrid_model = hybrid_model_class(config, placeholders, mode='inference')
+        hybrid_model.build_graph()
 
     with tf.Session() as session:
-
         # now restore the trained variables
         # this operation will fail if this `config` does not match the config you used during training
-        ckpt_path_dae = restore_dae(config, session)
-        ckpt_path_rnn = restore_rnn(config, session)
+        saver = tf.train.Saver()
+        ckpt_path = tf.train.latest_checkpoint(config['model_dir_hybrid'])
 
-        print('Evaluating RNN ' + ckpt_path_rnn + ' together with DAE:' + ckpt_path_dae)
+        print('Evaluating ' + ckpt_path)
+        saver.restore(session, ckpt_path)
 
         # loop through all the test samples
         seeds = []
@@ -55,7 +52,7 @@ def main(config):
 
             # here we are propagating the seed (50 frames) through the rnn to initialize it. Remember: the hidden-state is
             # stored in a tf.variable, therefore we don't need to feed/fetch anything here.
-            fetch = [rnn_model.update_internal_rnn_state]
+            fetch = [hybrid_model.update_internal_rnn_state]
             feed_dict = {placeholders['input_pl']: input_,
                          placeholders['seq_lengths_pl']: batch.seq_lengths}
 
@@ -66,18 +63,11 @@ def main(config):
             next_pose = input_[:, -1:]
             predicted_poses = []
             for f in range(config['prediction_length']):
-                fetch_rnn = [rnn_model.prediction, rnn_model.update_internal_rnn_state]
+                fetch_rnn = [hybrid_model.prediction, hybrid_model.update_internal_rnn_state]
                 feed_dict_rnn = {placeholders['input_pl']: next_pose,
                                  placeholders['seq_lengths_pl']: batch.batch_size * [1]}
 
                 [predicted_pose, _] = session.run(fetch_rnn, feed_dict_rnn)
-
-                # if 'use dae' is activated, feed the predicted_pose (from rnn) through the dae before appending it
-                if config['use_dae']:
-                    fetch_dae = dae_model.prediction
-                    feed_dict_dae = {dae_model.input: predicted_pose}
-
-                    predicted_pose = session.run(fetch_dae, feed_dict_dae)
 
                 predicted_poses.append(np.copy(predicted_pose))
                 next_pose = predicted_pose

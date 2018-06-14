@@ -9,6 +9,7 @@ from config import train_config
 from model import DAEModel, get_model_and_placeholders
 from load_data import MotionDataset
 from train_dae import train_dae
+from train_hybrid import train_hybrid
 from train_rnn import train_rnn
 from utils import export_config
 
@@ -38,10 +39,6 @@ def init_data(config, model_type):
     return config, data_train, data_valid
 
 
-def train_hybrid(config, data_train, data_valid):
-    print('TODO')
-
-
 if __name__ == '__main__':
     print('====== start program with parameters "' + sys.argv[1] + '" ======')
 
@@ -52,4 +49,4 @@ if __name__ == '__main__':
         train_dae(*init_data(train_config, 'dae'))
 
     if sys.argv[1] == 'hybrid':
-        print('not yet implemented!')
+        train_hybrid(*init_data(train_config, 'hybrid'))

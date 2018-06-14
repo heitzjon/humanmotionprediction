@@ -15,8 +15,7 @@ train_config['dropout_on_lstm_cell'] = 0.5
 train_config['init_scale_weights'] = 0.05
 train_config['max_grad_norm'] = 5
 
-
-train_config['n_epochs'] = 10
+train_config['n_epochs'] = 500
 
 train_config['save_checkpoints_every_epoch'] = 1  # after how many epochs the trained model should be saved
 train_config['n_keep_checkpoints'] = 3  # how many saved checkpoints to keep
@@ -38,12 +37,14 @@ train_config['learning_rate_decay_rate'] = 0.95
 # some additional configuration parameters required when the configured model is used at inference time
 test_config = train_config.copy()
 test_config['max_seq_length'] = 50  # want to use entire sequence during test, which is fixed to 50, don't change this
-test_config['model_dir_rnn'] = '../trained_models/rnn_dummy_1528982578' #maskedloss_model_500_1528486275/'
+train_config['model_dir_rnn'] = test_config['model_dir_rnn'] = '../trained_models/maskedloss_model_500_1528486275'
 test_config['checkpoint_id'] = None  # if None, the last checkpoint will be used
-test_config['prediction_length'] = 25  # how many frames to predict into the future (assignment requires 25 frames, but you can experiment with more if you'd like)
+test_config['prediction_length'] = 50  # how many frames to predict into the future (assignment requires 25 frames, but you can experiment with more if you'd like)
 
-test_config['model_dir_dae'] = '../trained_models/dae_dummy_1528980316'#dae_successfull_0_1_1528866484/'
+train_config['model_dir_dae'] = test_config['model_dir_dae'] = '../trained_models/dae_successfull_0_1_1528866484'
 test_config['use_dae'] = True
 test_config['scenario'] = 10
 test_config['scenario_id'] = 675
 test_config['select_scenario'] = True
+
+test_config['model_dir_hybrid'] = '../trained_models/hybrid_dummy_1529006107'
