@@ -157,6 +157,15 @@ if __name__ == '__main__':
 
     data = train_data[random_sequence_index]['angles']
     action_label = train_data[random_sequence_index]['action_label']
+    label=[]
+    for i in train_data:
+        if i['action_label'] not in label:
+            label.append(i['action_label'])
+            print (i['action_label'])
+            positions = forward_kinematics(i['angles'])
+            visualize_positions([positions], None, action_label=i['action_label'])
+
+    print(len(label))
 
     positions = forward_kinematics(data)
-    visualize_positions([positions],  None, action_label)
+    visualize_positions([positions],  None, action_label=action_label)

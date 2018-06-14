@@ -71,10 +71,19 @@ def main(config):
         predictions = np.concatenate(predictions, axis=0)
         dropouts = np.concatenate(dropouts, axis=0)
 
-    idx = np.random.randint(0, len(ground_truth))
-    print('We display sample with idx {} '.format(idx))
+    if config['select_scenario']:
+        labels = np.load(config['data_dir'] + '/test.npz')['data']
+        idx = np.random.randint(0, len(labels))
+        while labels[idx]['action_label'] is not config['scenario']:
+            idx = np.random.randint(0, len(labels))
+        label=labels[idx]['action_label']
+        print('We display sample with idx {} '.format(idx)+" and label {}".format(label))
+    else:
+        idx = np.random.randint(0, len(ground_truth))
+        print('We display sample with idx {} '.format(idx));
+        label=None
 
-    visualize_multiple_poses([ground_truth[idx]], [predictions[idx]], [dropouts[idx]])
+    visualize_multiple_poses([ground_truth[idx]], [predictions[idx]], [dropouts[idx]], action_label=label)
 
 if __name__ == '__main__':
     main(test_config)

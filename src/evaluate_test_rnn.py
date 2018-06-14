@@ -9,7 +9,7 @@ from model import DAEModel
 matplotlib.use('TkAgg')
 
 from config import test_config
-from visualize import visualize_joint_angles
+from visualize import visualize_joint_angles, visualize_multiple_poses
 from utils import export_to_csv
 from train import load_data, get_model_and_placeholders
 
@@ -96,10 +96,19 @@ def main(config):
 
     # the predictions are now stored in test_predictions, you can do with them what you want
     # for example, visualize a random entry
-    idx = np.random.randint(0, len(seeds))
-    print('We display sample with idx {} '.format(idx))
+    if config['select_scenario']:
+        labels = np.load(config['data_dir'] + '/test.npz')['data']
+        idx = np.random.randint(0, len(labels))
+        while labels[idx]['action_label'] is not config['scenario']:
+            idx = np.random.randint(0, len(labels))
+        label = labels[idx]['action_label']
+        print('We display sample with idx {} '.format(idx)+" and label {}".format(label))
+    else:
+        idx = np.random.randint(0, len(seeds))
+        print('We display sample with idx {} '.format(idx));
+        label=None
     seed_and_prediction = np.concatenate([seeds[idx], predictions[idx]], axis=0)
-    visualize_joint_angles([seed_and_prediction], change_color_after_frame=seeds[0].shape[0])
+    visualize_multiple_poses([seed_and_prediction], change_color_after_frame=seeds[0].shape[0], action_label=label)
 
     # or, write out the test results to a csv file that you can upload to Kaggle
     model_name = config['model_dir_rnn'].split('/')[-1]
