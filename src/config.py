@@ -44,5 +44,6 @@ test_config['prediction_length'] = 25  # how many frames to predict into the fut
 
 test_config['model_dir_dae'] = '../trained_models/dae_dummy_1528980316'#dae_successfull_0_1_1528866484/'
 test_config['use_dae'] = True
-test_config['scenario'] = 13
+test_config['scenario'] = 10
+test_config['scenario_id'] = 675
 test_config['select_scenario'] = True

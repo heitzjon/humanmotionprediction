@@ -73,16 +73,21 @@ def main(config):
 
     if config['select_scenario']:
         labels = np.load(config['data_dir'] + '/test.npz')['data']
-        idx = np.random.randint(0, len(labels))
-        while labels[idx]['action_label'] is not config['scenario']:
+        if config['scenario_id'] is not None:
+            idx=ids.index(config['scenario_id'])
+            label_id=config['scenario_id']-180
+        else:
             idx = np.random.randint(0, len(labels))
-        label=labels[idx]['action_label']
-        print('We display sample with idx {} '.format(idx)+" and label {}".format(label))
+            while labels[idx]['action_label'] is not config['scenario']:
+                idx = np.random.randint(0, len(labels))
+
+            label_id = ids[idx] - 180
+        label = labels[label_id]['action_label']
+        print('We display sample with idx {} '.format(idx) + " and label {}".format(label) + " and id {}".format(ids[idx]))
     else:
         idx = np.random.randint(0, len(ground_truth))
-        print('We display sample with idx {} '.format(idx));
+        print('We display sample with idx {} '.format(idx)+ " and id {}".format(ids[idx]));
         label=None
-
     visualize_multiple_poses([ground_truth[idx]], [predictions[idx]], [dropouts[idx]], action_label=label)
 
 if __name__ == '__main__':
