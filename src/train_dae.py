@@ -24,25 +24,27 @@ def train_dae(config, data_train, data_valid):
         print('created Dropout Auto Encoder model with {} parameters'.format(dae_model.n_parameters))
 
         # configure learning rate
-        if config['learning_rate_type'] == 'exponential':
-            learning_rate = tf.train.exponential_decay(config['learning_rate'],
+        if config['learning_rate_type_ae'] == 'exponential':
+            learning_rate = tf.train.exponential_decay(config['learning_rate_ae'],
                                                        global_step=global_step,
-                                                       decay_steps=config['learning_rate_decay_steps'],
-                                                       decay_rate=config['learning_rate_decay_rate'],
+                                                       decay_steps=config['learning_rate_decay_steps_ae'],
+                                                       decay_rate=config['learning_rate_decay_rate_ae'],
                                                        staircase=False)
             lr_decay_op = tf.identity(learning_rate)
-        elif config['learning_rate_type'] == 'linear':
-            learning_rate = tf.Variable(config['learning_rate'], trainable=False)
-            lr_decay_op = learning_rate.assign(tf.multiply(learning_rate, config['learning_rate_decay_rate']))
-        elif config['learning_rate_type'] == 'fixed':
-            learning_rate = config['learning_rate']
+        elif config['learning_rate_type_ae'] == 'linear':
+            learning_rate = tf.Variable(config['learning_rate_ae'], trainable=False)
+            lr_decay_op = learning_rate.assign(tf.multiply(learning_rate, config['learning_rate_decay_rate_ae']))
+        elif config['learning_rate_type_ae'] == 'fixed':
+            learning_rate = config['learning_rate_ae']
             lr_decay_op = tf.identity(learning_rate)
         else:
-            raise ValueError('learning rate type "{}" unknown.'.format(config['learning_rate_type']))
+            raise ValueError('learning rate type "{}" unknown.'.format(config['learning_rate_type_ae']))
 
         # choose the optimizer you desire here and define `train_op. The loss should be accessible through rnn_model.loss
-        train_op = tf.train.GradientDescentOptimizer(learning_rate).minimize(loss=dae_model.loss,
-                                                                             global_step=tf.train.get_or_create_global_step())
+        # train_op = tf.train.GradientDescentOptimizer(learning_rate).minimize(loss=dae_model.loss,
+        #                                                                      global_step=tf.train.get_or_create_global_step())
+        optimizer = tf.train.AdamOptimizer(learning_rate, beta1=0.9, beta2=0.999, epsilon=1e-08)
+        train_op = optimizer.minimize(loss=dae_model.loss, global_step=tf.train.get_global_step())
 
         max_norm_ops = tf.get_collection("max_norm")
 
@@ -91,7 +93,7 @@ def train_dae(config, data_train, data_valid):
         # start training
         start_time = time.time()
         current_step = 0
-        for e in range(config['n_epochs']):
+        for e in range(config['n_epochs_ae']):
 
             # reshuffle the batches
             data_train.reshuffle()
@@ -101,7 +103,7 @@ def train_dae(config, data_train, data_valid):
                 step = tf.train.global_step(sess, global_step)
                 current_step += 1
 
-                if config['learning_rate_type'] == 'linear' and current_step % config['learning_rate_decay_steps'] == 0:
+                if config['learning_rate_type_ae'] == 'linear' and current_step % config['learning_rate_type_ae'] == 0:
                     sess.run(lr_decay_op)
 
                 # we want to train, so must request at least the train_op

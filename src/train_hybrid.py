@@ -4,14 +4,14 @@ import time
 
 import tensorflow as tf
 
-from model import get_model_and_placeholders
-from utils import export_config
+from model import get_model_and_placeholders, CombinedModel
+from utils import export_config, restore_dae, restore_rnn
 
 
-def train_rnn(config, data_train, data_valid):
+def train_hybrid(config, data_train, data_valid):
 
-    # get input placeholders and get the model that we want to train
-    rnn_model_class, placeholders = get_model_and_placeholders(config)
+    _, placeholders = get_model_and_placeholders(config)
+    hybrid_model_class = CombinedModel
 
     # Create a variable that stores how many training iterations we performed.
     # This is useful for saving/storing the network
@@ -19,42 +19,38 @@ def train_rnn(config, data_train, data_valid):
 
     # create a training graph, this is the graph we will use to optimize the parameters
     with tf.name_scope('training'):
-        rnn_model = rnn_model_class(config, placeholders, mode='training')
-        rnn_model.build_graph()
-        print('created RNN model with {} parameters'.format(rnn_model.n_parameters))
+        model = hybrid_model_class(config, placeholders, mode='training')
+        model.build_graph()
+
+        print('created combined model with {} parameters'.format(model.n_parameters))
 
         # configure learning rate
-        if config['learning_rate_type_rnn'] == 'exponential':
-            lr = tf.train.exponential_decay(config['learning_rate_rnn'],
+        if config['learning_rate_type_hybrid'] == 'exponential':
+            lr = tf.train.exponential_decay(config['learning_rate_hybrid'],
                                             global_step=global_step,
-                                            decay_steps=config['learning_rate_decay_steps_rnn'],
-                                            decay_rate=config['learning_rate_decay_rate_rnn'],
+                                            decay_steps=config['learning_rate_decay_steps_hybrid'],
+                                            decay_rate=config['learning_rate_decay_rate_hybrid'],
                                             staircase=False)
             lr_decay_op = tf.identity(lr)
-        elif config['learning_rate_type_rnn'] == 'linear':
-            lr = tf.Variable(config['learning_rate_rnn'], trainable=False)
-            lr_decay_op = lr.assign(tf.multiply(lr, config['learning_rate_decay_rate_rnn']))
-        elif config['learning_rate_type_rnn'] == 'fixed':
-            lr = config['learning_rate_rnn']
+        elif config['learning_rate_type_hybrid'] == 'linear':
+            lr = tf.Variable(config['learning_rate_hybrid'], trainable=False)
+            lr_decay_op = lr.assign(tf.multiply(lr, config['learning_rate_decay_rate_hybrid']))
+        elif config['learning_rate_type_hybrid'] == 'fixed':
+            lr = config['learning_rate_hybrid']
             lr_decay_op = tf.identity(lr)
         else:
-            raise ValueError('learning rate type "{}" unknown.'.format(config['learning_rate_type_rnn']))
+            raise ValueError('learning rate type "{}" unknown.'.format(config['learning_rate_type_hybrid']))
 
         # choose the optimizer you desire here and define `train_op. The loss should be accessible through rnn_model.loss
-        optimizer = tf.train.AdamOptimizer(learning_rate=lr, beta1=0.9, beta2=0.999, epsilon=1e-08)
+        optimizer = tf.train.AdamOptimizer(lr, beta1=0.9, beta2=0.999, epsilon=1e-08)
+        train_op = optimizer.minimize(loss=model.loss, global_step=tf.train.get_global_step())
 
-        # params = tf.trainable_variables()
-        # grads, _ = tf.clip_by_global_norm(tf.gradients(rnn_model.loss, params), config['max_grad_norm'])
-        # train_op = optimizer.apply_gradients(
-        #     zip(grads, params),
-        #     global_step=tf.train.get_or_create_global_step())
-
-        train_op = optimizer.minimize(loss=rnn_model.loss, global_step=tf.train.get_global_step())
+        max_norm_ops = tf.get_collection("max_norm")
 
     # create a graph for validation
     with tf.name_scope('validation'):
-        rnn_model_valid = rnn_model_class(config, placeholders, mode='validation')
-        rnn_model_valid.build_graph()
+        model_valid = hybrid_model_class(config, placeholders, mode='validation')
+        model_valid.build_graph()
 
     # Create summary ops for monitoring the training
     # Each summary op annotates a node in the computational graph and collects data data from it
@@ -78,10 +74,17 @@ def train_rnn(config, data_train, data_valid):
     export_config(config, os.path.join(config['model_dir'], 'config.txt'))
 
     with tf.Session() as sess:
-        # Add the ops to initialize variables.
+        # # Add the ops to initialize variables.
         init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
-        # Actually intialize the variables
+        # # Actually intialize the variables
         sess.run(init_op)
+
+        # now restore the two pre-trained graphs
+        # this operation will fail if this `config` does not match the config you used during training
+        ckpt_path_dae = restore_dae(config, sess)
+        ckpt_path_rnn = restore_rnn(config, sess)
+
+        print('Restored both partial models, RNN(' + ckpt_path_rnn + ') and DAE(' + ckpt_path_dae + ')')
 
         # create file writers to dump summaries onto disk so that we can look at them with tensorboard
         train_summary_dir = os.path.join(config['model_dir'], "summary", "train")
@@ -95,7 +98,7 @@ def train_rnn(config, data_train, data_valid):
         # start training
         start_time = time.time()
         current_step = 0
-        for e in range(config['n_epochs_rnn']):
+        for e in range(config['n_epochs_hybrid']):
 
             # reshuffle the batches
             data_train.reshuffle()
@@ -105,20 +108,23 @@ def train_rnn(config, data_train, data_valid):
                 step = tf.train.global_step(sess, global_step)
                 current_step += 1
 
-                if config['learning_rate_type_rnn'] == 'linear' and current_step % config['learning_rate_decay_steps_rnn'] == 0:
+                if config['learning_rate_type_hybrid'] == 'linear' and current_step % config['learning_rate_decay_steps_hybrid'] == 0:
                     sess.run(lr_decay_op)
 
                 # we want to train, so must request at least the train_op
                 fetches = {'summaries': summaries_training,
-                           'loss': rnn_model.loss,
+                           'loss': model.loss,
                            'train_op': train_op}
 
                 # get the feed dict for the current batch
-                feed_dict = rnn_model.get_feed_dict(batch)
+                feed_dict = model.get_feed_dict(batch)
 
                 # feed data into the model and run optimization
-                xyz = batch.mask
-                training_out, _ = sess.run([fetches, rnn_model.update_internal_rnn_state], feed_dict)
+                training_out, _ = sess.run([fetches, model.update_internal_rnn_state], feed_dict)
+
+                # re-scale the weights in the dense-vector.
+                # See this: https://stackoverflow.com/questions/34934303/renormalize-weight-matrix-using-tensorflow/39028553
+                sess.run(max_norm_ops)
 
                 # write logs
                 train_summary_writer.add_summary(training_out['summaries'], global_step=step)
@@ -132,8 +138,8 @@ def train_rnn(config, data_train, data_valid):
             total_valid_loss = 0.0
             n_valid_samples = 0
             for batch in data_valid.all_batches():
-                fetches = {'loss': rnn_model_valid.loss}
-                feed_dict = rnn_model_valid.get_feed_dict(batch)
+                fetches = {'loss': model_valid.loss}
+                feed_dict = model_valid.get_feed_dict(batch)
                 valid_out = sess.run(fetches, feed_dict)
 
                 total_valid_loss += valid_out['loss'] * batch.batch_size

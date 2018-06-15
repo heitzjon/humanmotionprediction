@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import tensorflow as tf
 
 
 class Skeleton(object):
@@ -169,6 +170,31 @@ def export_to_csv(data, ids, output_file):
         output_file.append('.csv')
 
     data_frame.to_csv(output_file, float_format='%.8f')
+
+
+def restore_rnn(config, session):
+    ckpt_path_rnn = tf.train.latest_checkpoint(config['model_dir_rnn'])
+
+    # same as above. The [:-2] removes the index at the end of the name of the variable (e.g. :0),
+    # as this is not stored in the checkpoint (use inspect_checkpoint to verify)
+    rnn_varlist = {v.name[:-2]: v for v in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope="rnn_model/")}
+    saver_rnn = tf.train.Saver(rnn_varlist)
+    saver_rnn.restore(session, ckpt_path_rnn)
+
+    return ckpt_path_rnn
+
+
+def restore_dae(config, session):
+    ckpt_path_dae = tf.train.latest_checkpoint(config['model_dir_dae'])
+
+    # find all the dae-variables in the graph and initialize the Saver with them. If we don't do that, the saver
+    # tries to restore all the variables in the graph, which is obviously not possible (as the graph consists of both, dae and rnn)
+    dae_varlist = {v.name[:-2]: v for v in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope="dae_model/")}
+    saver_dae = tf.train.Saver(dae_varlist)
+    saver_dae.restore(session, ckpt_path_dae)
+
+    return ckpt_path_dae
+
 
 
 def verify_tensorflow_with_gpu():
