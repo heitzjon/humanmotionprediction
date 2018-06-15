@@ -60,7 +60,9 @@ class DAEModel(object):
 
             self.reshaped_dropout_input = tf.reshape(dropout_input, [self.batch_size, tf.shape(self.input)[1], 75])
 
-            dense_layer1 = tf.contrib.layers.fully_connected(inputs=self.reshaped_dropout_input,
+            reshaped_dropout_with_noise = gaussian_noise_layer(self.reshaped_dropout_input, 0.005)
+
+            dense_layer1 = tf.contrib.layers.fully_connected(inputs=reshaped_dropout_with_noise,
                                                              num_outputs=self.dense_layer_units,
                                                              activation_fn=tf.nn.relu,
                                                              weights_regularizer=max_norm_regularizer(3))
@@ -226,7 +228,11 @@ class CombinedModel(object):
                                               training=self.is_training)
 
             self.reshaped_dropout_input = tf.reshape(dropout_input, [self.batch_size, tf.shape(self.prediction_rnn)[1], 75])
-            reshaped_dropout_with_noise = gaussian_noise_layer(self.reshaped_dropout_input, 0.005)
+
+            if self.is_training:
+                reshaped_dropout_with_noise = gaussian_noise_layer(self.reshaped_dropout_input, 0.005)
+            else:
+                reshaped_dropout_with_noise = self.reshaped_dropout_input
 
             dense_layer1 = tf.contrib.layers.fully_connected(inputs=reshaped_dropout_with_noise,
                                                              num_outputs=self.dense_layer_units,
