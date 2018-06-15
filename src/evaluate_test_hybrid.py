@@ -107,9 +107,9 @@ def main(config):
     visualize_multiple_poses([seed_and_prediction], change_color_after_frame=seeds[0].shape[0], action_label=label)
 
     # or, write out the test results to a csv file that you can upload to Kaggle
-    model_name = config['model_dir_rnn'].split('/')[-1]
-    model_name = config['model_dir_rnn'].split('/')[-2] if model_name == '' else model_name
-    output_file = os.path.join(config['model_dir_rnn'], 'submit_to_kaggle_{}_{}.csv'.format(config['prediction_length'], model_name))
+    model_name = config['model_dir_hybrid'].split('/')[-1]
+    model_name = config['model_dir_hybrid'].split('/')[-2] if model_name == '' else model_name
+    output_file = os.path.join(config['model_dir_hybrid'], 'submit_to_kaggle_{}_{}.csv'.format(config['prediction_length'], model_name))
     export_to_csv(predictions, ids, output_file)
 
 
