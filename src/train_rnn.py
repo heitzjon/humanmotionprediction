@@ -24,32 +24,32 @@ def train_rnn(config, data_train, data_valid):
         print('created RNN model with {} parameters'.format(rnn_model.n_parameters))
 
         # configure learning rate
-        if config['learning_rate_type'] == 'exponential':
-            lr = tf.train.exponential_decay(config['learning_rate'],
+        if config['learning_rate_type_rnn'] == 'exponential':
+            lr = tf.train.exponential_decay(config['learning_rate_rnn'],
                                             global_step=global_step,
-                                            decay_steps=config['learning_rate_decay_steps'],
-                                            decay_rate=config['learning_rate_decay_rate'],
+                                            decay_steps=config['learning_rate_decay_steps_rnn'],
+                                            decay_rate=config['learning_rate_decay_rate_rnn'],
                                             staircase=False)
             lr_decay_op = tf.identity(lr)
-        elif config['learning_rate_type'] == 'linear':
-            lr = tf.Variable(config['learning_rate'], trainable=False)
-            lr_decay_op = lr.assign(tf.multiply(lr, config['learning_rate_decay_rate']))
-        elif config['learning_rate_type'] == 'fixed':
-            lr = config['learning_rate']
+        elif config['learning_rate_type_rnn'] == 'linear':
+            lr = tf.Variable(config['learning_rate_rnn'], trainable=False)
+            lr_decay_op = lr.assign(tf.multiply(lr, config['learning_rate_decay_rate_rnn']))
+        elif config['learning_rate_type_rnn'] == 'fixed':
+            lr = config['learning_rate_rnn']
             lr_decay_op = tf.identity(lr)
         else:
-            raise ValueError('learning rate type "{}" unknown.'.format(config['learning_rate_type']))
+            raise ValueError('learning rate type "{}" unknown.'.format(config['learning_rate_type_rnn']))
 
         # choose the optimizer you desire here and define `train_op. The loss should be accessible through rnn_model.loss
-        optimizer = tf.train.GradientDescentOptimizer(lr)
+        optimizer = tf.train.AdamOptimizer(learning_rate=lr, beta1=0.9, beta2=0.999, epsilon=1e-08)
 
-        params = tf.trainable_variables()
-        grads, _ = tf.clip_by_global_norm(tf.gradients(rnn_model.loss, params), config['max_grad_norm'])
-        train_op = optimizer.apply_gradients(
-            zip(grads, params),
-            global_step=tf.train.get_or_create_global_step())
+        # params = tf.trainable_variables()
+        # grads, _ = tf.clip_by_global_norm(tf.gradients(rnn_model.loss, params), config['max_grad_norm'])
+        # train_op = optimizer.apply_gradients(
+        #     zip(grads, params),
+        #     global_step=tf.train.get_or_create_global_step())
 
-        # train_op = optimizer.minimize(loss=rnn_model.loss, global_step=tf.train.get_global_step())
+        train_op = optimizer.minimize(loss=rnn_model.loss, global_step=tf.train.get_global_step())
 
     # create a graph for validation
     with tf.name_scope('validation'):
@@ -95,7 +95,7 @@ def train_rnn(config, data_train, data_valid):
         # start training
         start_time = time.time()
         current_step = 0
-        for e in range(config['n_epochs']):
+        for e in range(config['n_epochs_rnn']):
 
             # reshuffle the batches
             data_train.reshuffle()
@@ -105,7 +105,7 @@ def train_rnn(config, data_train, data_valid):
                 step = tf.train.global_step(sess, global_step)
                 current_step += 1
 
-                if config['learning_rate_type'] == 'linear' and current_step % config['learning_rate_decay_steps'] == 0:
+                if config['learning_rate_type_rnn'] == 'linear' and current_step % config['learning_rate_decay_steps_rnn'] == 0:
                     sess.run(lr_decay_op)
 
                 # we want to train, so must request at least the train_op

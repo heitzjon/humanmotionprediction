@@ -187,7 +187,7 @@ class CombinedModel(object):
         with tf.variable_scope('rnn_model', reuse=self.reuse):
             batch_size = self.config['batch_size']
 
-            cell = tf.contrib.rnn.MultiRNNCell([self.make_cell() for _ in range(self.num_layers)], state_is_tuple=True)
+            cell = tf.contrib.rnn.MultiRNNCell([self.make_cell_without_dropout() for _ in range(self.num_layers)], state_is_tuple=True)
 
             # the idea of sharing the internal rnn-cell-state via tf-variables is based on this code:
             # https://stackoverflow.com/questions/38441589/is-rnn-initial-state-reset-for-subsequent-mini-batches
@@ -295,7 +295,7 @@ class CombinedModel(object):
 
         return feed_dict
 
-    def make_cell(self):
+    def make_cell_without_dropout(self):
         cell = tf.contrib.rnn.LSTMCell(self.hidden_units, forget_bias=1.0)
         # add a dropout wrapper if training
         # if self.is_training:

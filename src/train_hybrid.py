@@ -25,25 +25,25 @@ def train_hybrid(config, data_train, data_valid):
         print('created combined model with {} parameters'.format(model.n_parameters))
 
         # configure learning rate
-        if config['learning_rate_type'] == 'exponential':
-            lr = tf.train.exponential_decay(config['learning_rate'],
+        if config['learning_rate_type_hybrid'] == 'exponential':
+            lr = tf.train.exponential_decay(config['learning_rate_hybrid'],
                                             global_step=global_step,
-                                            decay_steps=config['learning_rate_decay_steps'],
-                                            decay_rate=config['learning_rate_decay_rate'],
+                                            decay_steps=config['learning_rate_decay_steps_hybrid'],
+                                            decay_rate=config['learning_rate_decay_rate_hybrid'],
                                             staircase=False)
             lr_decay_op = tf.identity(lr)
-        elif config['learning_rate_type'] == 'linear':
-            lr = tf.Variable(config['learning_rate'], trainable=False)
-            lr_decay_op = lr.assign(tf.multiply(lr, config['learning_rate_decay_rate']))
-        elif config['learning_rate_type'] == 'fixed':
-            lr = config['learning_rate']
+        elif config['learning_rate_type_hybrid'] == 'linear':
+            lr = tf.Variable(config['learning_rate_hybrid'], trainable=False)
+            lr_decay_op = lr.assign(tf.multiply(lr, config['learning_rate_decay_rate_hybrid']))
+        elif config['learning_rate_type_hybrid'] == 'fixed':
+            lr = config['learning_rate_hybrid']
             lr_decay_op = tf.identity(lr)
         else:
-            raise ValueError('learning rate type "{}" unknown.'.format(config['learning_rate_type']))
+            raise ValueError('learning rate type "{}" unknown.'.format(config['learning_rate_type_hybrid']))
 
         # choose the optimizer you desire here and define `train_op. The loss should be accessible through rnn_model.loss
-        train_op = tf.train.GradientDescentOptimizer(lr).minimize(loss=model.loss,
-                                                                  global_step=tf.train.get_or_create_global_step())
+        optimizer = tf.train.AdamOptimizer(lr, beta1=0.9, beta2=0.999, epsilon=1e-08)
+        train_op = optimizer.minimize(loss=model.loss, global_step=tf.train.get_global_step())
 
         max_norm_ops = tf.get_collection("max_norm")
 
@@ -98,7 +98,7 @@ def train_hybrid(config, data_train, data_valid):
         # start training
         start_time = time.time()
         current_step = 0
-        for e in range(config['n_epochs']):
+        for e in range(config['n_epochs_hybrid']):
 
             # reshuffle the batches
             data_train.reshuffle()
@@ -108,7 +108,7 @@ def train_hybrid(config, data_train, data_valid):
                 step = tf.train.global_step(sess, global_step)
                 current_step += 1
 
-                if config['learning_rate_type'] == 'linear' and current_step % config['learning_rate_decay_steps'] == 0:
+                if config['learning_rate_type_hybrid'] == 'linear' and current_step % config['learning_rate_decay_steps_hybrid'] == 0:
                     sess.run(lr_decay_op)
 
                 # we want to train, so must request at least the train_op
