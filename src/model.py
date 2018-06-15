@@ -220,35 +220,36 @@ class CombinedModel(object):
             reshaped_figure = tf.reshape(self.prediction_rnn, [self.batch_size, tf.shape(self.prediction_rnn)[1], 25, 3])
 
             dropout_input = tf.layers.dropout(inputs=reshaped_figure,
-                                              rate=self.first_layer_dropout_rate,
+                                              rate=0.001,
                                               noise_shape=[self.batch_size, tf.shape(self.prediction_rnn)[1], 25, 1],
                                               # training=True)
                                               training=self.is_training)
 
             self.reshaped_dropout_input = tf.reshape(dropout_input, [self.batch_size, tf.shape(self.prediction_rnn)[1], 75])
+            reshaped_dropout_with_noise = gaussian_noise_layer(self.reshaped_dropout_input, 0.005)
 
-            dense_layer1 = tf.contrib.layers.fully_connected(inputs=self.reshaped_dropout_input,
+            dense_layer1 = tf.contrib.layers.fully_connected(inputs=reshaped_dropout_with_noise,
                                                              num_outputs=self.dense_layer_units,
                                                              activation_fn=tf.nn.relu,
                                                              weights_regularizer=max_norm_regularizer(3))
 
-            dropout_layer1 = tf.layers.dropout(inputs=dense_layer1, rate=0.001)
+            # dropout_layer1 = tf.layers.dropout(inputs=dense_layer1, rate=0.001)
 
-            dense_layer2 = tf.contrib.layers.fully_connected(inputs=dropout_layer1,
+            dense_layer2 = tf.contrib.layers.fully_connected(inputs=dense_layer1,
                                                              num_outputs=self.dense_layer_units,
                                                              activation_fn=tf.nn.relu,
                                                              weights_regularizer=max_norm_regularizer(3))
 
-            dropout_layer2 = tf.layers.dropout(inputs=dense_layer2, rate=0.001)
+            # dropout_layer2 = tf.layers.dropout(inputs=dense_layer2, rate=0.001)
 
-            dense_layer3 = tf.contrib.layers.fully_connected(inputs=dropout_layer2,
+            dense_layer3 = tf.contrib.layers.fully_connected(inputs=dense_layer2,
                                                              num_outputs=self.dense_layer_units,
                                                              activation_fn=tf.nn.relu,
                                                              weights_regularizer=max_norm_regularizer(3))
 
-            dropout_layer3 = tf.layers.dropout(inputs=dense_layer3, rate=0.001)
+            # dropout_layer3 = tf.layers.dropout(inputs=dense_layer3, rate=0.001)
 
-            self.prediction = tf.contrib.layers.fully_connected(inputs=dropout_layer3,
+            self.prediction = tf.contrib.layers.fully_connected(inputs=dense_layer3,
                                                                 num_outputs=self.output_dim,
                                                                 activation_fn=None,
                                                                 weights_regularizer=max_norm_regularizer(3))
@@ -297,8 +298,8 @@ class CombinedModel(object):
     def make_cell(self):
         cell = tf.contrib.rnn.LSTMCell(self.hidden_units, forget_bias=1.0)
         # add a dropout wrapper if training
-        if self.is_training:
-            cell = tf.contrib.rnn.DropoutWrapper(cell, output_keep_prob=self.config['dropout_on_lstm_cell'])
+        # if self.is_training:
+        #     cell = tf.contrib.rnn.DropoutWrapper(cell, output_keep_prob=self.config['dropout_on_lstm_cell'])
 
         return cell
 
