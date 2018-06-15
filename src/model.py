@@ -55,8 +55,8 @@ class DAEModel(object):
             dropout_input = tf.layers.dropout(inputs=reshaped_figure,
                                               rate=self.first_layer_dropout_rate,
                                               noise_shape=[self.batch_size, tf.shape(self.input)[1], 25, 1],
-                                              # training=True)
-                                              training=self.is_training)
+                                              training=True)
+                                              # training=self.is_training)
 
             self.reshaped_dropout_input = tf.reshape(dropout_input, [self.batch_size, tf.shape(self.input)[1], 75])
 

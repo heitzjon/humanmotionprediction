@@ -92,11 +92,11 @@ def main(config):
             idx=ids.index(config['scenario_id'])
             label_id=config['scenario_id']-180
         else:
-            idx = np.random.randint(0, len(labels))
-            while labels[idx]['action_label'] is not config['scenario']:
-                idx = np.random.randint(0, len(labels))
-
-            label_id = ids[idx] - 180
+            idl = np.random.randint(0, len(labels))
+            while labels[idl]['action_label'] is not config['scenario']:
+                idl = np.random.randint(0, len(labels))
+            idx = ids.index(idl + 180)
+            label_id = idl
         label = labels[label_id]['action_label']
         print('We display sample with idx {} '.format(idx)+" and label {}".format(label))
     else:
