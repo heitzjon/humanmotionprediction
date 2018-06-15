@@ -9,9 +9,9 @@ train_config['n_keep_checkpoints'] = 3  # how many saved checkpoints to keep
 
 train_config['n_epochs_rnn'] = 25
 
-train_config['learning_rate_rnn'] = 0.005
+train_config['learning_rate_rnn'] = 0.001
 # some code to anneal the learning rate, this is implemented for you, you can just choose it here
-train_config['learning_rate_type_rnn'] = 'linear'  # ['fixed', 'exponential', 'linear']
+train_config['learning_rate_type_rnn'] = 'fixed'  # ['fixed', 'exponential', 'linear']
 train_config['learning_rate_decay_steps_rnn'] = 500
 train_config['learning_rate_decay_rate_rnn'] = 0.9
 
