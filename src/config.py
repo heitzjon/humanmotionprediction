@@ -16,7 +16,7 @@ train_config['init_scale_weights'] = 0.05
 train_config['max_grad_norm'] = 5
 
 
-train_config['n_epochs'] = 100  #20
+train_config['n_epochs'] =700  #20
 
 train_config['save_checkpoints_every_epoch'] = 1  # after how many epochs the trained model should be saved
 train_config['n_keep_checkpoints'] = 3  # how many saved checkpoints to keep

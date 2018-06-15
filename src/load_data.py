@@ -258,8 +258,12 @@ class MotionDataset(Dataset, Feeder):
 
         data_file = os.path.join(data_path, '{}.npz'.format(split))
         print('load sequences of length {} from {}'.format(seq_length, data_file))
-
         data = np.load(data_file)['data']
+
+        data_file = os.path.join(data_path, '{}.npz'.format('valid'))
+        print('load sequences of length {} from {}'.format(seq_length, data_file))
+        data = np.append(data, np.load(data_file)['data'])
+
         all_angles = []
         all_ids = []
         all_action_labels = []
