@@ -13,7 +13,14 @@ import numpy as np
 from utils import forward_kinematics, Skeleton
 
 
-def visualize_positions(positions, positions2=None, positions3=None,change_color_after_frame=None, action_label='not provided'):
+class VisualizationModes:
+    DAE, RNN, HYBRID = range(3)
+
+
+def visualize_positions(positions, positions2=None, positions3=None,
+                        change_color_after_frame=None,
+                        action_label='not provided',
+                        visualisation_mode = VisualizationModes.RNN):
     """
     Visualize motion given 3D positions. Can visualize several motions side by side. If the sequence lengths don't
     match, all animations are displayed until the shortest sequence length.
@@ -108,11 +115,15 @@ def visualize_positions(positions, positions2=None, positions3=None,change_color
         action_label_text = 'Action Label: {0}'.format(action_label)
         fig_text.set_text(';  '.join([time_passed, action_label_text]))
 
+    if visualisation_mode == VisualizationModes.RNN or visualisation_mode == VisualizationModes.HYBRID:
+        interval = int(round(1000.0 / 20.0))
+    else:
+        interval = int(round(1000.0 / 2.0))
+
     # create the animation object, for animation to work reference to this object must be kept
     line_ani = animation.FuncAnimation(fig, update_frame, seq_length,
                                        fargs=(pos, all_lines, parents, colors + [colors[0]]),
-                                       interval=int(round(1000.0 / 20.0)), blit=False)   #int(round(1000.0 / 25.0))
-
+                                       interval=interval, blit=False)
 
     plt.show()
 
@@ -127,15 +138,12 @@ def visualize_joint_angles(joint_angles, change_color_after_frame=None):
     visualize_positions(positions, change_color_after_frame=change_color_after_frame)
 
 
-def visualize_multiple_poses(poses_1, poses_2=None, poses_3=None, change_color_after_frame=None, action_label=None):
+def visualize_multiple_poses(poses_1, poses_2=None, poses_3=None, change_color_after_frame=None, action_label=None, visualisation_mode=None):
     """
     Visualize motion given joint angles in exponential map format.
     :param positions: list of np arrays in shape (seq_length, n_joints*3) giving the 3D positions per joint and frame.
     :param change_color_after_frame: after this frame id, the color of the plot is changed
     """
-
-    #positions = [forward_kinematics(ja) for ja in joint_angles]
-
     positions_1 = [forward_kinematics(ja) for ja in poses_1]
     if not poses_2 is None:
         positions_2 = [forward_kinematics(ja) for ja in poses_2]
@@ -143,7 +151,7 @@ def visualize_multiple_poses(poses_1, poses_2=None, poses_3=None, change_color_a
     if not poses_3 is None:
         positions_3 = [forward_kinematics(ja) for ja in poses_3]
     else: positions_3=None
-    visualize_positions(positions_1, positions_2, positions_3, change_color_after_frame, action_label)
+    visualize_positions(positions_1, positions_2, positions_3, change_color_after_frame, action_label, visualisation_mode)
 
 
 if __name__ == '__main__':

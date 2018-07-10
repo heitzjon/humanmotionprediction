@@ -9,7 +9,7 @@ from model import DAEModel
 matplotlib.use('TkAgg')
 
 from config import test_config
-from visualize import visualize_joint_angles, visualize_multiple_poses
+from visualize import visualize_multiple_poses, VisualizationModes
 from utils import export_to_csv, restore_dae, restore_rnn
 from train import load_data, get_model_and_placeholders
 
@@ -46,6 +46,8 @@ def main(config):
         seeds = []
         predictions = []
         ids = []
+        action_labels = []
+
         for batch in data_test.all_batches():
 
             # initialize the RNN with the known sequence (here 2 seconds)
@@ -86,6 +88,7 @@ def main(config):
 
             predictions.append(predicted_poses)
             ids.extend(batch.ids)
+            action_labels.extend(batch.action_labels)
 
         seeds = np.concatenate(seeds, axis=0)
         predictions = np.concatenate(predictions, axis=0)
@@ -93,28 +96,22 @@ def main(config):
     seeds = seeds[0:len(data_test.input_)]
     predictions = predictions[0:len(data_test.input_)]
     ids = ids[0:len(data_test.input_)]
+    action_labels = action_labels[0:len(data_test.input_)]
 
     # the predictions are now stored in test_predictions, you can do with them what you want
     # for example, visualize a random entry
     if config['select_scenario']:
-        labels = np.load(config['data_dir'] + '/test.npz')['data']
-        if config['scenario_id'] is not None:
-            idx=ids.index(config['scenario_id'])
-            label_id=config['scenario_id']-180
-        else:
-            idx = np.random.randint(0, len(labels))
-            while labels[idx]['action_label'] is not config['scenario']:
-                idx = np.random.randint(0, len(labels))
+        all_indices_scenario = [i for i, a in enumerate(action_labels) if a == config['scenario']]
 
-            label_id = ids[idx] - 180
-        label = labels[label_id]['action_label']
-        print('We display sample with idx {} '.format(idx)+" and label {}".format(label))
+        idx = all_indices_scenario[np.random.randint(0, len(all_indices_scenario))]
+        # idx = action_labels.index(config['scenario'])
     else:
         idx = np.random.randint(0, len(seeds))
-        print('We display sample with idx {} '.format(idx));
-        label=None
+
+    print('We display sample with id {} '.format(ids[idx]) + " and label {}".format(action_labels[idx]))
+
     seed_and_prediction = np.concatenate([seeds[idx], predictions[idx]], axis=0)
-    visualize_multiple_poses([seed_and_prediction], change_color_after_frame=seeds[0].shape[0], action_label=label)
+    visualize_multiple_poses([seed_and_prediction], change_color_after_frame=seeds[0].shape[0], action_label=action_labels[idx], visualisation_mode=VisualizationModes.RNN)
 
     # or, write out the test results to a csv file that you can upload to Kaggle
     model_name = config['model_dir_rnn'].split('/')[-1]

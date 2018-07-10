@@ -6,7 +6,7 @@ import matplotlib
 matplotlib.use('TkAgg')
 
 from config import test_config
-from visualize import visualize_multiple_poses
+from visualize import visualize_multiple_poses, VisualizationModes
 from utils import export_to_csv
 from train import load_data, get_model_and_placeholders
 from model import DAEModel
@@ -44,6 +44,8 @@ def main(config):
         predictions = []
         dropouts = []
         ids = []
+        action_labels = []
+
         for batch in data_test.all_batches():
 
             input_, _ = batch.get_padded_data(pad_target=False)
@@ -66,29 +68,20 @@ def main(config):
             predictions.append(predicted_poses)
             dropouts.append(dropout_poses)
             ids.extend(batch.ids)
+            action_labels.extend(batch.action_labels)
 
         ground_truth = np.concatenate(ground_truth, axis=0)
         predictions = np.concatenate(predictions, axis=0)
         dropouts = np.concatenate(dropouts, axis=0)
 
     if config['select_scenario']:
-        labels = np.load(config['data_dir'] + '/test.npz')['data']
-        if config['scenario_id'] is not None:
-            idx=ids.index(config['scenario_id'])
-            label_id=config['scenario_id']-180
-        else:
-            idx = np.random.randint(0, len(labels))
-            while labels[idx]['action_label'] is not config['scenario']:
-                idx = np.random.randint(0, len(labels))
-
-            label_id = ids[idx] - 180
-        label = labels[label_id]['action_label']
-        print('We display sample with idx {} '.format(idx) + " and label {}".format(label) + " and id {}".format(ids[idx]))
+        idx = action_labels.index(config['scenario'])
+        print('We display sample with id {} '.format(ids[idx])+" and label {}".format(action_labels[idx]))
     else:
-        idx = np.random.randint(0, len(ground_truth))
-        print('We display sample with idx {} '.format(idx)+ " and id {}".format(ids[idx]));
-        label=None
-    visualize_multiple_poses([ground_truth[idx]], [predictions[idx]], [dropouts[idx]], action_label=label)
+        idx = np.random.randint(0, len(predictions))
+        print('We display random sample with idx {} '.format(idx))
+
+    visualize_multiple_poses([ground_truth[idx]], [predictions[idx]], [dropouts[idx]], action_label=action_labels[idx], visualisation_mode=VisualizationModes.DAE)
 
 if __name__ == '__main__':
     main(test_config)
